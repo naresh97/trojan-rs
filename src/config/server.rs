@@ -3,6 +3,8 @@ use std::{net::SocketAddr, str::FromStr};
 use anyhow::Result;
 use aws_lc_rs::digest;
 
+use crate::socks5::destination::Destination;
+
 pub struct ServerConfig {
     pub domain: String,
     pub listening_address: String,
@@ -23,8 +25,10 @@ impl ServerConfig {
         }
         false
     }
-    pub fn get_fallback_addr(&self) -> Result<std::net::SocketAddr> {
-        Ok(SocketAddr::from_str(&self.fallback_destination)?)
+    pub fn get_fallback_addr(&self) -> Result<Destination> {
+        Ok(Destination::Ip(SocketAddr::from_str(
+            &self.fallback_destination,
+        )?))
     }
 }
 
@@ -33,7 +37,7 @@ impl Default for ServerConfig {
         Self {
             password: "12345".to_string(),
             domain: "example.com".to_string(),
-            fallback_destination: "google.com:80".to_string(),
+            fallback_destination: "142.250.179.206:80".to_string(),
             listening_address: "0.0.0.0:1234".to_string(),
             certificate_path: "samples/cert.pem".to_string(),
             private_key_path: "samples/private.pem".to_string(),

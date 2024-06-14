@@ -1,5 +1,6 @@
 use crate::{config::ServerConfig, dns::DnsResolver};
 use anyhow::{anyhow, Result};
+use log::debug;
 use std::io::ErrorKind;
 use tokio::{io::AsyncReadExt, net::TcpStream};
 use tokio_rustls::{server, TlsConnector};
@@ -59,28 +60,32 @@ impl SocketState {
         tls_connector: &TlsConnector,
         buffer: &[u8],
     ) -> Result<Vec<u8>> {
-        let request = TrojanRequest::parse(dns_resolver, buffer).await;
+        debug!("Initializing new socket");
+
+        let request = TrojanRequest::parse(buffer).await;
         let request =
             request.and_then(
                 |req| match server_config.is_password_correct(&req.password) {
                     true => Ok(req),
-                    false => Err(anyhow!("Password was incorrect")),
+                    false => Err(anyhow!("Password was incorrec")),
                 },
             );
         match request {
             Ok(request) => {
+                debug!("Trojan handshake recognized, creating client.");
                 let payload = request.payload.clone();
                 let mut client = request
-                    .into_forwarding_client(tls_connector, server_config)
+                    .into_forwarding_client(tls_connector, dns_resolver)
                     .await?;
                 let result = client.forward(&payload).await;
                 *self = SocketState::Approved(client);
                 result
             }
-            Err(_e) => {
+            Err(e) => {
+                debug!("Trojan handshake failed: {}", e);
                 let mut client = ForwardingClient::new(
                     tls_connector,
-                    server_config,
+                    dns_resolver,
                     server_config.get_fallback_addr()?,
                 )
                 .await?;
