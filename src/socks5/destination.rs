@@ -8,7 +8,7 @@ use super::request::RequestAddressType;
 
 #[derive(Debug)]
 pub enum Destination {
-    Ip(SocketAddr),
+    Address(SocketAddr),
     DomainName { domain: String, port: u16 },
 }
 
@@ -21,6 +21,42 @@ impl Destination {
             RequestAddressType::Ipv6 => parse_ipv6(buffer),
         }
     }
+    pub fn as_bytes(&self) -> Vec<u8> {
+        match self {
+            Destination::Address(address) => match address {
+                SocketAddr::V4(address) => {
+                    let address_type = [RequestAddressType::Ipv4.as_byte()];
+                    let ip = address.ip().to_bits().to_be_bytes();
+                    let port = address.port().to_be_bytes();
+                    [address_type.as_slice(), ip.as_slice(), port.as_slice()]
+                        .concat()
+                        .to_vec()
+                }
+                SocketAddr::V6(address) => {
+                    let address_type = [RequestAddressType::Ipv6.as_byte()];
+                    let ip = address.ip().to_bits().to_be_bytes();
+                    let port = address.port().to_be_bytes();
+                    [address_type.as_slice(), ip.as_slice(), port.as_slice()]
+                        .concat()
+                        .to_vec()
+                }
+            },
+            Destination::DomainName { domain, port } => {
+                let address_type = [RequestAddressType::DomainName.as_byte()];
+                let domain = domain.as_bytes();
+                let length = [domain.len() as u8];
+                let port = port.to_be_bytes();
+                [
+                    address_type.as_slice(),
+                    length.as_slice(),
+                    domain,
+                    port.as_slice(),
+                ]
+                .concat()
+                .to_vec()
+            }
+        }
+    }
 }
 
 fn parse_ipv4(buffer: &[u8]) -> Result<(Destination, &[u8])> {
@@ -31,7 +67,7 @@ fn parse_ipv4(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let buffer = advance_buffer(4, buffer)?;
     let (port, buffer) = parse_port(buffer)?;
     Ok((
-        Destination::Ip(SocketAddrV4::new(address, port).into()),
+        Destination::Address(SocketAddrV4::new(address, port).into()),
         buffer,
     ))
 }
@@ -62,7 +98,7 @@ fn parse_ipv6(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let buffer = advance_buffer(16, buffer)?;
     let (port, buffer) = parse_port(buffer)?;
     Ok((
-        Destination::Ip(SocketAddrV6::new(ip, port, 0, 0).into()),
+        Destination::Address(SocketAddrV6::new(ip, port, 0, 0).into()),
         buffer,
     ))
 }
@@ -98,7 +134,7 @@ mod tests {
         .concat();
         let (destination, buffer) = Destination::parse(buffer.as_slice()).unwrap();
         let google1: SocketAddr = SocketAddrV4::new(Ipv4Addr::new(8, 8, 8, 8), 80).into();
-        if let Destination::Ip(ip) = destination {
+        if let Destination::Address(ip) = destination {
             assert_eq!(google1, ip);
             assert_eq!(4, buffer.len());
             assert_eq!([1, 2, 3, 4], buffer);

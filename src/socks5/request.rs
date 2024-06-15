@@ -43,6 +43,7 @@ pub enum RequestCommand {
     Bind,
     UdpAssociate,
 }
+
 impl RequestCommand {
     pub fn parse(buffer: &[u8]) -> Result<(RequestCommand, &[u8])> {
         let command = buffer
@@ -63,6 +64,13 @@ impl RequestCommand {
                 .get(1..)
                 .ok_or(anyhow!("Cannot return remaining buffer"))?,
         ))
+    }
+    pub fn as_byte(&self) -> u8 {
+        match self {
+            RequestCommand::Connect => 0x01,
+            RequestCommand::Bind => 0x02,
+            RequestCommand::UdpAssociate => 0x03,
+        }
     }
 }
 
@@ -85,6 +93,13 @@ impl RequestAddressType {
         }
         .ok_or(anyhow!("Unknown address type"))?;
         Ok((address_type, advance_buffer(1, buffer)?))
+    }
+    pub fn as_byte(&self) -> u8 {
+        match self {
+            RequestAddressType::Ipv4 => 0x01,
+            RequestAddressType::DomainName => 0x03,
+            RequestAddressType::Ipv6 => 0x04,
+        }
     }
 }
 

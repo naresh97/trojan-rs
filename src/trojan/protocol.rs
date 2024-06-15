@@ -1,27 +1,26 @@
 use anyhow::{anyhow, Result};
 
-use tokio_rustls::TlsConnector;
+use aws_lc_rs::digest;
 
 use crate::{
-    dns::DnsResolver,
-    forwarding_client::ForwardingClient,
     socks5::{self, destination::Destination},
-    utils::advance_buffer,
+    utils::{advance_buffer, CRLF},
 };
-pub struct TrojanRequest {
-    pub password: Vec<u8>,
+pub struct TrojanHandshake {
+    pub password: String,
     #[allow(unused)]
     pub command: socks5::request::RequestCommand,
     pub destination: Destination,
     pub payload: Vec<u8>,
 }
 
-impl TrojanRequest {
-    pub async fn parse(buffer: &[u8]) -> Result<TrojanRequest> {
+impl TrojanHandshake {
+    pub async fn parse(buffer: &[u8]) -> Result<TrojanHandshake> {
         let password = buffer
             .get(0..56)
-            .ok_or(anyhow!("Buffer too short, couldn't get password."))?
-            .to_vec();
+            .ok_or(anyhow!("Buffer too short, couldn't get password."))?;
+        let password = std::str::from_utf8(password)?.to_string();
+
         let buffer = advance_buffer(56, buffer)?;
 
         let buffer = check_crlf_and_advance(buffer)?;
@@ -30,19 +29,27 @@ impl TrojanRequest {
         let (destination, buffer) = Destination::parse(buffer)?;
 
         let payload = check_crlf_and_advance(buffer)?.to_vec();
-        Ok(TrojanRequest {
+        Ok(TrojanHandshake {
             password,
             command,
             payload,
             destination,
         })
     }
-    pub async fn into_forwarding_client(
-        self,
-        connector: &TlsConnector,
-        dns_resolver: &DnsResolver,
-    ) -> Result<ForwardingClient> {
-        ForwardingClient::new(connector, dns_resolver, self.destination, true).await
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let password = self.password.as_bytes();
+        let command = [self.command.as_byte()];
+        let destination = self.destination.as_bytes();
+        let data = [
+            password,
+            CRLF.as_slice(),
+            command.as_slice(),
+            destination.as_slice(),
+            CRLF.as_slice(),
+            self.payload.as_slice(),
+        ]
+        .concat();
+        data
     }
 }
 
@@ -58,4 +65,9 @@ fn check_crlf_and_advance(buffer: &[u8]) -> Result<&[u8]> {
         })
         .ok_or(anyhow!("Buffer too short."))??;
     advance_buffer(2, buffer)
+}
+
+pub fn hash_password(clear_text: &str) -> String {
+    let hash = digest::digest(&digest::SHA224, clear_text.as_bytes());
+    hex::encode(hash.as_ref())
 }
