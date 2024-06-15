@@ -7,6 +7,7 @@ use crate::utils::advance_buffer;
 use super::destination::Destination;
 
 pub struct Request {
+    #[allow(unused)]
     pub command: RequestCommand,
     pub destination: Destination,
 }
