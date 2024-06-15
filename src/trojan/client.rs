@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use tokio::{
-    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
@@ -17,31 +17,53 @@ use super::protocol::TrojanHandshake;
 
 pub struct TrojanClient {
     stream: TlsStream<TcpStream>,
+    destination: Destination,
+    pub local_addr: SocketAddr,
 }
 
 impl TrojanClient {
-    pub async fn write(
-        payload: &[u8],
+    pub async fn new(
         destination: Destination,
         client_config: &ClientConfig,
         dns_resolver: &DnsResolver,
         connector: &TlsConnector,
     ) -> Result<TrojanClient> {
-        let handshake = TrojanHandshake {
-            password: client_config.password.clone(),
-            command: socks5::request::RequestCommand::Connect,
-            destination,
-            payload: payload.to_vec(),
-        };
-        let handshake = handshake.as_bytes();
         let domain = client_config.server_domain.clone();
         let ip = dns_resolver.resolve(&domain).await?;
         let port = client_config.server_port;
         let address = SocketAddr::new(ip, port);
         let stream = TcpStream::connect(address).await?;
-        let mut stream = connector.connect(domain.try_into()?, stream).await?;
-        stream.write_all(&handshake).await?;
-        Ok(TrojanClient { stream })
+        let local_addr = stream.local_addr()?;
+        let stream = connector.connect(domain.try_into()?, stream).await?;
+        Ok(TrojanClient {
+            stream,
+            destination,
+            local_addr,
+        })
+    }
+
+    pub async fn send_handshake(
+        &mut self,
+        payload: &[u8],
+        client_config: &ClientConfig,
+    ) -> Result<()> {
+        let handshake = TrojanHandshake {
+            password: client_config.password.clone(),
+            command: socks5::request::RequestCommand::Connect,
+            destination: self.destination.clone(),
+            payload: payload.to_vec(),
+        };
+        let handshake = handshake.as_bytes();
+        self.stream.write_all(&handshake).await?;
+        Ok(())
+    }
+
+    pub async fn forward(
+        &mut self,
+        client_stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
+    ) -> std::result::Result<(), anyhow::Error> {
+        copy_bidirectional(client_stream, &mut self.stream).await?;
+        Ok(())
     }
 }
 

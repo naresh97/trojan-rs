@@ -1272,6 +1272,7 @@ name = "trojan-rs"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "aws-lc-rs",
  "env_logger",
  "hex",

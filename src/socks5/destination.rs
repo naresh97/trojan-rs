@@ -6,7 +6,7 @@ use crate::utils::advance_buffer;
 
 use super::request::RequestAddressType;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Destination {
     Address(SocketAddr),
     DomainName { domain: String, port: u16 },

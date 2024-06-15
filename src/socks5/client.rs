@@ -7,12 +7,8 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 
 use crate::{
-    config::ClientConfig,
-    dns::DnsResolver,
-    forwarding_client::ForwardingClient,
-    socks5::identify::parse_identify_block,
-    tls::io::get_tls_connector,
-    utils::read_to_buffer,
+    config::ClientConfig, dns::DnsResolver, socks5::identify::parse_identify_block,
+    tls::io::get_tls_connector, trojan::client::TrojanClient, utils::read_to_buffer,
 };
 
 use super::{
@@ -23,7 +19,7 @@ use super::{
 pub async fn client_main() -> Result<()> {
     debug!("Starting SOCKS5 Trojan Client");
     let config = ClientConfig::default();
-    let listener = TcpListener::bind(config.listening_addr).await?;
+    let listener = TcpListener::bind(&config.listening_addr).await?;
     let dns_resolver = DnsResolver::new().await;
     let connector = get_tls_connector();
 
@@ -31,8 +27,9 @@ pub async fn client_main() -> Result<()> {
         let (stream, _) = listener.accept().await?;
         let dns_resolver = dns_resolver.clone();
         let connector = connector.clone();
+        let config = config.clone();
         tokio::spawn(async move {
-            if let Err(err) = handle_socket(stream, &dns_resolver, &connector).await {
+            if let Err(err) = handle_socket(stream, &dns_resolver, &connector, &config).await {
                 error!("{}", err);
             }
             debug!("Ending socket.");
@@ -43,30 +40,43 @@ pub async fn client_main() -> Result<()> {
 enum ClientState {
     WaitForIdentify,
     WaitForRequest,
-    Open(ForwardingClient),
+    Open(TrojanClient),
 }
 
 async fn handle_socket(
     mut stream: TcpStream,
     dns_resolver: &DnsResolver,
     connector: &TlsConnector,
+    client_config: &ClientConfig,
 ) -> Result<()> {
     let mut client_state = ClientState::WaitForIdentify;
 
     loop {
         match &mut client_state {
-            ClientState::Open(forwarding) => handle_forwarding(forwarding, &mut stream).await?,
+            ClientState::Open(forwarding) => {
+                handle_forwarding(forwarding, &mut stream, client_config).await?
+            }
             _ => {
-                handle_socket_setup(&mut client_state, &mut stream, connector, dns_resolver).await?
+                handle_socket_setup(
+                    &mut client_state,
+                    &mut stream,
+                    connector,
+                    dns_resolver,
+                    client_config,
+                )
+                .await?
             }
         }
     }
 }
 
 async fn handle_forwarding(
-    forwarding: &mut ForwardingClient,
+    forwarding: &mut TrojanClient,
     client_stream: &mut TcpStream,
+    client_config: &ClientConfig,
 ) -> Result<()> {
+    let payload = read_to_buffer(client_stream).await?;
+    forwarding.send_handshake(&payload, client_config).await?;
     forwarding.forward(client_stream).await?;
     Ok(())
 }
@@ -76,6 +86,7 @@ async fn handle_socket_setup(
     stream: &mut TcpStream,
     connector: &TlsConnector,
     dns_resolver: &DnsResolver,
+    client_config: &ClientConfig,
 ) -> Result<()> {
     let buffer = read_to_buffer(stream).await?;
     match client_state {
@@ -88,8 +99,10 @@ async fn handle_socket_setup(
         }
         ClientState::WaitForRequest => {
             let (request, _buffer) = Request::parse(&buffer)?;
+
             let client =
-                ForwardingClient::new(connector, dns_resolver, request.destination, false).await?;
+                TrojanClient::new(request.destination, client_config, dns_resolver, connector)
+                    .await?;
             let response = create_response(&client.local_addr)?;
             *client_state = ClientState::Open(client);
             stream.write_all(&response).await?;
