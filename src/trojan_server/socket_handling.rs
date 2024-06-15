@@ -74,32 +74,33 @@ impl SocketState {
                     false => Err(anyhow!("Password was incorrec")),
                 },
             );
-        match request {
-            Ok(request) => {
-                debug!("Trojan handshake recognized, creating client.");
-                let payload = request.payload.clone();
-                let mut client = request
-                    .into_forwarding_client(tls_connector, dns_resolver)
-                    .await?;
-                let result = client.forward(&payload).await;
-                *self = SocketState::Approved(client);
-                result;
-                todo!()
-            }
-            Err(e) => {
-                debug!("Trojan handshake failed: {}", e);
-                let mut client = ForwardingClient::new(
-                    tls_connector,
-                    dns_resolver,
-                    Destination::from_ip(&server_config.fallback_addr)?,
-                    true,
-                )
-                .await?;
-                let result = client.forward(buffer).await;
-                *self = SocketState::Rejected(client);
-                result;
-                todo!()
-            }
-        }
+        todo!()
+        // match request {
+        //     Ok(request) => {
+        //         debug!("Trojan handshake recognized, creating client.");
+        //         let payload = request.payload.clone();
+        //         let mut client = request
+        //             .into_forwarding_client(tls_connector, dns_resolver)
+        //             .await?;
+        //         let result = client.forward(&payload).await;
+        //         *self = SocketState::Approved(client);
+        //         result;
+        //         todo!()
+        //     }
+        //     Err(e) => {
+        //         debug!("Trojan handshake failed: {}", e);
+        //         let mut client = ForwardingClient::new(
+        //             tls_connector,
+        //             dns_resolver,
+        //             Destination::from_ip(&server_config.fallback_addr)?,
+        //             true,
+        //         )
+        //         .await?;
+        //         let result = client.forward(buffer).await;
+        //         *self = SocketState::Rejected(client);
+        //         result;
+        //         todo!()
+        //     }
+        // }
     }
 }

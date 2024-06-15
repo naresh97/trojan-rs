@@ -1,14 +1,14 @@
 use std::net::SocketAddr;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use log::debug;
 use tokio::{
-    io::{copy, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    io::{copy_bidirectional, AsyncRead, AsyncWrite},
     net::TcpStream,
 };
 use tokio_rustls::TlsConnector;
 
-use crate::{dns::DnsResolver, socks5::destination::Destination, utils::BUFFER_SIZE};
+use crate::{dns::DnsResolver, socks5::destination::Destination};
 
 pub struct ForwardingClient {
     stream: Box<dyn AsyncStream>,
@@ -46,35 +46,8 @@ impl ForwardingClient {
         Ok(ForwardingClient { stream, local_addr })
     }
 
-    pub async fn forward(&mut self, buffer: &[u8]) -> Result<Vec<u8>> {
-        debug!("Forwarding message length {}", buffer.len());
-        self.stream.write_all(buffer).await?;
-        let mut data = Vec::<u8>::new();
-        loop {
-            let mut buffer = Vec::with_capacity(BUFFER_SIZE);
-            match self.stream.read_buf(&mut buffer).await {
-                Ok(0) => break Err(anyhow!("Socket closed.")),
-                Ok(n) => {
-                    debug!("Received reply length {}", n);
-                    buffer.shrink_to_fit();
-                    data.append(&mut buffer);
-                    if n <= BUFFER_SIZE {
-                        break Ok(());
-                    }
-                }
-                Err(e) => break Err(e.into()),
-            }
-        }?;
-        Ok(data)
-    }
-    pub async fn forward_into_writer(
-        &mut self,
-        buffer: &[u8],
-        mut writer: impl AsyncWrite + Unpin,
-    ) -> Result<()> {
-        debug!("Forwarding message length {}", buffer.len());
-        self.stream.write_all(buffer).await?;
-        copy(&mut self.stream, &mut writer).await?;
+    pub async fn forward(&mut self, client_stream: &mut TcpStream) -> Result<()> {
+        copy_bidirectional(client_stream, &mut self.stream).await?;
         Ok(())
     }
 }
