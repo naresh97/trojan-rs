@@ -1,10 +1,16 @@
-#[derive(Clone)]
+use serde::{Deserialize, Serialize};
+
+use super::LoadFromToml;
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ClientConfig {
     pub listening_addr: String,
     pub password: String,
     pub server_domain: String,
     pub server_port: u16,
 }
+
+impl LoadFromToml for ClientConfig {}
 
 impl Default for ClientConfig {
     fn default() -> Self {

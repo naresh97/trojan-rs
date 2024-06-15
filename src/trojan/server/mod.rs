@@ -1,19 +1,19 @@
 mod socket_handling;
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use log::debug;
 use socket_handling::handle_socket;
 use tokio::net::TcpListener;
 
 use crate::{
-    config::ServerConfig,
+    config::{LoadFromToml, ServerConfig},
     dns::DnsResolver,
     tls::{certificates::Certificates, io::TlsAdapters},
 };
 
 pub async fn server_main() -> anyhow::Result<()> {
-    let server_config = ServerConfig::default();
+    let server_config = ServerConfig::load(Path::new("samples/server.toml"))?;
     debug!("Loaded configs, ready to listen.");
 
     let tls_adapters = TlsAdapters::new(Certificates::load(&server_config)?)?;
