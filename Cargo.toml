@@ -18,3 +18,10 @@ log = "0.4.21"
 async-trait = "0.1.80"
 serde = { version = "1.0.203", features = ["derive"] }
 toml = "0.8.14"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true
+codegen-units = 1
