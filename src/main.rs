@@ -13,9 +13,7 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .init();
+    env_logger::builder().init();
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(|x| x.as_str()) {
         Some("client") => socks5::client::client_main().await.unwrap(),

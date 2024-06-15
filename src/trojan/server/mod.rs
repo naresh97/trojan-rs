@@ -2,7 +2,7 @@ mod socket_handling;
 
 use std::{path::Path, sync::Arc};
 
-use log::debug;
+use log::{debug, info};
 use socket_handling::handle_socket;
 use tokio::net::TcpListener;
 
@@ -13,8 +13,9 @@ use crate::{
 };
 
 pub async fn server_main() -> anyhow::Result<()> {
+    info!("Starting Trojan Server");
     let server_config = ServerConfig::load(Path::new("samples/server.toml"))?;
-    debug!("Loaded configs, ready to listen.");
+    info!("Loaded configs, ready to listen.");
 
     let tls_acceptor = get_tls_acceptor(Certificates::load(&server_config)?)?;
     let dns_resolver = Arc::new(DnsResolver::new().await);
