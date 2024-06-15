@@ -12,7 +12,7 @@ use crate::{
     config::{ClientConfig, LoadFromToml},
     dns::DnsResolver,
     socks5::identify::parse_identify_block,
-    tls::io::get_tls_connector,
+    tls::{certificates::load_certificates, io::get_tls_connector},
     trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
@@ -27,7 +27,13 @@ pub async fn client_main() -> Result<()> {
     let config = ClientConfig::load(Path::new("samples/client.toml"))?;
     let listener = TcpListener::bind(&config.listening_addr).await?;
     let dns_resolver = DnsResolver::new().await;
-    let connector = get_tls_connector();
+
+    let self_signed_ca = if cfg!(debug_assertions) {
+        load_certificates("samples/ca.pem")?.first().cloned()
+    } else {
+        None
+    };
+    let connector = get_tls_connector(self_signed_ca)?;
 
     loop {
         let (stream, _) = listener.accept().await?;
