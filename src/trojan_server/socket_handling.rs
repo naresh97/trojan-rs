@@ -1,11 +1,14 @@
-use crate::{config::ServerConfig, dns::DnsResolver, socks5::destination::Destination};
+use crate::{
+    config::ServerConfig, dns::DnsResolver, forwarding_client::ForwardingClient,
+    socks5::destination::Destination, utils::BUFFER_SIZE,
+};
 use anyhow::{anyhow, Result};
 use log::debug;
 use std::io::ErrorKind;
 use tokio::{io::AsyncReadExt, net::TcpStream};
 use tokio_rustls::{server, TlsConnector};
 
-use super::{forwarding_client::ForwardingClient, trojan::TrojanRequest};
+use super::trojan::TrojanRequest;
 
 pub async fn handle_socket(
     dns_resolver: &DnsResolver,
@@ -15,7 +18,7 @@ pub async fn handle_socket(
 ) -> Result<()> {
     let mut socket_state = SocketState::Initial;
     loop {
-        let mut buf = Vec::with_capacity(0x1000);
+        let mut buf = Vec::with_capacity(BUFFER_SIZE);
         match socket.read_buf(&mut buf).await {
             Ok(0) => break,
             Ok(n) => {
@@ -43,14 +46,15 @@ impl SocketState {
         tls_connector: &TlsConnector,
         buffer: &[u8],
     ) -> Result<Vec<u8>> {
-        match self {
-            SocketState::Initial => {
-                self.handle_initial(dns_resolver, server_config, tls_connector, buffer)
-                    .await
-            }
-            SocketState::Approved(client) => client.forward(buffer).await,
-            SocketState::Rejected(client) => client.forward(buffer).await,
-        }
+        // match self {
+        //     SocketState::Initial => {
+        //         self.handle_initial(dns_resolver, server_config, tls_connector, buffer)
+        //             .await
+        //     }
+        //     SocketState::Approved(client) => client.forward(buffer).await,
+        //     SocketState::Rejected(client) => client.forward(buffer).await,
+        // }
+        todo!()
     }
 
     async fn handle_initial(
@@ -79,7 +83,8 @@ impl SocketState {
                     .await?;
                 let result = client.forward(&payload).await;
                 *self = SocketState::Approved(client);
-                result
+                result;
+                todo!()
             }
             Err(e) => {
                 debug!("Trojan handshake failed: {}", e);
@@ -87,11 +92,13 @@ impl SocketState {
                     tls_connector,
                     dns_resolver,
                     Destination::from_ip(&server_config.fallback_addr)?,
+                    true,
                 )
                 .await?;
                 let result = client.forward(buffer).await;
                 *self = SocketState::Rejected(client);
-                result
+                result;
+                todo!()
             }
         }
     }

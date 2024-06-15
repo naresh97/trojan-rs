@@ -16,7 +16,7 @@ pub enum Destination {
 }
 
 impl Destination {
-    pub async fn parse(buffer: &[u8]) -> Result<(Destination, &[u8])> {
+    pub fn parse(buffer: &[u8]) -> Result<(Destination, &[u8])> {
         let (address_type, buffer) = RequestAddressType::parse(buffer)?;
         match address_type {
             RequestAddressType::Ipv4 => parse_ipv4(buffer),
@@ -102,7 +102,7 @@ mod tests {
             payload.as_slice(),
         ]
         .concat();
-        let (destination, buffer) = Destination::parse(buffer.as_slice()).await.unwrap();
+        let (destination, buffer) = Destination::parse(buffer.as_slice()).unwrap();
         let google1: SocketAddr = SocketAddrV4::new(Ipv4Addr::new(8, 8, 8, 8), 80).into();
         if let Destination::Ip(ip) = destination {
             assert_eq!(google1, ip);
@@ -128,7 +128,7 @@ mod tests {
             payload.as_slice(),
         ]
         .concat();
-        let (ip, buffer) = Destination::parse(buffer.as_slice()).await.unwrap();
+        let (ip, buffer) = Destination::parse(buffer.as_slice()).unwrap();
         if let Destination::DomainName { domain, port } = ip {
             assert_eq!(domain, "dns.google");
             assert_eq!(port, 80);

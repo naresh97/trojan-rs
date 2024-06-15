@@ -4,11 +4,10 @@ use tokio_rustls::TlsConnector;
 
 use crate::{
     dns::DnsResolver,
+    forwarding_client::ForwardingClient,
     socks5::{self, destination::Destination},
     utils::advance_buffer,
 };
-
-use super::forwarding_client::ForwardingClient;
 
 pub struct TrojanRequest {
     pub password: Vec<u8>,
@@ -28,7 +27,7 @@ impl TrojanRequest {
         let buffer = check_crlf_and_advance(buffer)?;
 
         let (command, buffer) = socks5::request::RequestCommand::parse(buffer)?;
-        let (destination, buffer) = Destination::parse(buffer).await?;
+        let (destination, buffer) = Destination::parse(buffer)?;
 
         let payload = check_crlf_and_advance(buffer)?.to_vec();
         Ok(TrojanRequest {
@@ -43,7 +42,7 @@ impl TrojanRequest {
         connector: &TlsConnector,
         dns_resolver: &DnsResolver,
     ) -> Result<ForwardingClient> {
-        ForwardingClient::new(connector, dns_resolver, self.destination).await
+        ForwardingClient::new(connector, dns_resolver, self.destination, true).await
     }
 }
 

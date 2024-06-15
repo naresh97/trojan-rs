@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use anyhow::{anyhow, Result};
 
 use crate::utils::advance_buffer;
@@ -5,8 +7,33 @@ use crate::utils::advance_buffer;
 use super::destination::Destination;
 
 pub struct Request {
-    command: RequestCommand,
-    destination: Destination,
+    pub command: RequestCommand,
+    pub destination: Destination,
+}
+
+impl Request {
+    pub fn parse(buffer: &[u8]) -> Result<(Request, &[u8])> {
+        let version = *buffer.first().ok_or(anyhow!("Could not get version."))?;
+        if version != 5 {
+            return Err(anyhow!("Only SOCKS5 supported"));
+        }
+        let buffer = advance_buffer(1, buffer)?;
+        let (command, buffer) = RequestCommand::parse(buffer)?;
+
+        let empty = *buffer.first().ok_or(anyhow!("Could not get RSV."))?;
+        if empty != 0 {
+            return Err(anyhow!("RSV must be 0"));
+        }
+        let buffer = advance_buffer(1, buffer)?;
+        let (destination, buffer) = Destination::parse(buffer)?;
+        Ok((
+            Request {
+                command,
+                destination,
+            },
+            buffer,
+        ))
+    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -58,6 +85,25 @@ impl RequestAddressType {
         .ok_or(anyhow!("Unknown address type"))?;
         Ok((address_type, advance_buffer(1, buffer)?))
     }
+}
+
+pub fn create_response(local_addr: &SocketAddr) -> Result<Vec<u8>> {
+    let header = [5u8, 0, 0];
+    let is_ipv4 = local_addr.is_ipv4();
+    let atype = [if is_ipv4 { 1 } else { 4 }];
+    let address = match local_addr.ip() {
+        std::net::IpAddr::V4(ip) => ip.to_bits().to_be_bytes().to_vec(),
+        std::net::IpAddr::V6(ip) => ip.to_bits().to_be_bytes().to_vec(),
+    };
+    let port = local_addr.port().to_be_bytes();
+    let response = [
+        header.as_slice(),
+        atype.as_slice(),
+        address.as_slice(),
+        port.as_slice(),
+    ]
+    .concat();
+    Ok(response)
 }
 
 #[cfg(test)]

@@ -6,6 +6,7 @@ use hickory_resolver::{
     TokioAsyncResolver,
 };
 
+#[derive(Clone)]
 pub struct DnsResolver {
     resolver: hickory_resolver::AsyncResolver<
         hickory_resolver::name_server::GenericConnector<
