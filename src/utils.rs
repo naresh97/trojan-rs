@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 pub fn advance_buffer(length: usize, buffer: &[u8]) -> Result<&[u8]> {
     buffer
@@ -7,3 +8,12 @@ pub fn advance_buffer(length: usize, buffer: &[u8]) -> Result<&[u8]> {
 }
 
 pub const BUFFER_SIZE: usize = 0x1000;
+
+pub async fn read_to_buffer(stream: &mut (impl AsyncRead + Unpin)) -> Result<Vec<u8>> {
+    let mut buffer = Vec::with_capacity(BUFFER_SIZE);
+    match stream.read_buf(&mut buffer).await {
+        Ok(0) => Err(anyhow!("Socket closed")),
+        Err(e) => Err(e.into()),
+        Ok(n) => Ok(buffer[..n].to_vec()),
+    }
+}

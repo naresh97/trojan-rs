@@ -46,7 +46,10 @@ impl ForwardingClient {
         Ok(ForwardingClient { stream, local_addr })
     }
 
-    pub async fn forward(&mut self, client_stream: &mut TcpStream) -> Result<()> {
+    pub async fn forward(
+        &mut self,
+        client_stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
+    ) -> Result<()> {
         copy_bidirectional(client_stream, &mut self.stream).await?;
         Ok(())
     }
