@@ -53,17 +53,17 @@ async fn handle_handshake(
     match request {
         Ok(request) => {
             let payload = request.payload.clone();
-            let forwarding_client = request
+            let mut forwarding_client = request
                 .into_forwarding_client(connector, dns_resolver)
                 .await?;
-            stream.write_all(&payload).await?;
+            forwarding_client.write_buffer(&payload).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
         Err(_e) => {
-            stream.write_all(&buffer).await?;
             let fallback_destination = Destination::Ip(server_config.fallback_addr.parse()?);
-            let forwarding_client =
-                ForwardingClient::new(connector, dns_resolver, fallback_destination, true).await?;
+            let mut forwarding_client =
+                ForwardingClient::new(connector, dns_resolver, fallback_destination, false).await?;
+            forwarding_client.write_buffer(&buffer).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
     }
