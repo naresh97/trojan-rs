@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 
 use crate::utils::advance_buffer;
 
@@ -16,14 +16,14 @@ impl Request {
     pub fn parse(buffer: &[u8]) -> Result<(Request, &[u8])> {
         let version = *buffer.first().ok_or(anyhow!("Could not get version."))?;
         if version != 5 {
-            return Err(anyhow!("Only SOCKS5 supported"));
+            bail!("Only SOCKS5 supported");
         }
         let buffer = advance_buffer(1, buffer)?;
         let (command, buffer) = RequestCommand::parse(buffer)?;
 
         let empty = *buffer.first().ok_or(anyhow!("Could not get RSV."))?;
         if empty != 0 {
-            return Err(anyhow!("RSV must be 0"));
+            bail!("RSV must be 0");
         }
         let buffer = advance_buffer(1, buffer)?;
         let (destination, buffer) = Destination::parse(buffer)?;

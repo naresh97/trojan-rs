@@ -1,11 +1,11 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 
 use crate::utils::advance_buffer;
 
 pub fn parse_identify_block(buffer: &[u8]) -> Result<&[u8]> {
     let version = *buffer.first().ok_or(anyhow!("Buffer empty"))?;
     if version != 5 {
-        return Err(anyhow!("Only SOCKS5 supported"));
+        bail!("Only SOCKS5 supported");
     }
     let buffer = advance_buffer(1, buffer)?;
 

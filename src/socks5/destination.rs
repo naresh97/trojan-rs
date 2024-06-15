@@ -1,6 +1,6 @@
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 
 use crate::utils::advance_buffer;
 
@@ -82,7 +82,9 @@ fn parse_domain_name(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let domain = buffer
         .get(0..length)
         .ok_or(anyhow!("Buffer not long enough to contain domain name"))?;
-    let domain = std::str::from_utf8(domain)?.to_string();
+    let domain = std::str::from_utf8(domain)
+        .context("Attempting to parse domain name in Socks Request")?
+        .to_string();
     let buffer = advance_buffer(length, buffer)?;
 
     let (port, buffer) = parse_port(buffer)?;

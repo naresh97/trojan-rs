@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 
 use aws_lc_rs::digest;
 
@@ -19,7 +19,14 @@ impl TrojanHandshake {
         let password = buffer
             .get(0..56)
             .ok_or(anyhow!("Buffer too short, couldn't get password."))?;
-        let password = std::str::from_utf8(password)?.to_string();
+        let password = std::str::from_utf8(password)
+            .with_context(|| {
+                format!(
+                    "Reading password from handshake: {}",
+                    String::from_utf8_lossy(password)
+                )
+            })?
+            .to_string();
 
         let buffer = advance_buffer(56, buffer)?;
 
@@ -58,9 +65,9 @@ fn check_crlf_and_advance(buffer: &[u8]) -> Result<&[u8]> {
         .get(0..2)
         .map(|crlf| {
             if crlf == [0x0d, 0x0a] {
-                Err(anyhow!("Expected CRLF"))
-            } else {
                 Ok(())
+            } else {
+                Err(anyhow!("Expected CRLF, found {:?}", crlf))
             }
         })
         .ok_or(anyhow!("Buffer too short."))??;
