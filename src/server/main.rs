@@ -1,5 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
+use log::debug;
 use tokio::net::TcpListener;
 
 use crate::{
@@ -23,19 +24,23 @@ pub async fn server_main() -> anyhow::Result<()> {
     let connector = get_tls_connector();
     let listener = TcpListener::bind(&server_config.listening_address).await?;
     let dns_resolver = Arc::new(DnsResolver::new().await);
-
+    debug!("Loaded configs, ready to listen.");
     loop {
         let (tcp_stream, _) = listener.accept().await?;
+        debug!("Incoming socket");
         let acceptor = acceptor.clone();
         let connector = connector.clone();
         let dns_resolver = dns_resolver.clone();
         let server_config = server_config.clone();
         tokio::spawn(async move {
-            match acceptor.accept(tcp_stream).await {
+            let result = match acceptor.accept(tcp_stream).await {
                 Ok(tls_stream) => {
                     handle_socket(&dns_resolver, &server_config, &connector, tls_stream).await
                 }
                 Err(e) => Err(e.into()),
+            };
+            if let Err(e) = result {
+                debug!("Socket handling error: {}", e);
             }
         });
     }

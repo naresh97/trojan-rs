@@ -2,64 +2,69 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 use anyhow::{anyhow, Result};
 
-use crate::{dns::DnsResolver, utils::advance_buffer};
+use crate::utils::advance_buffer;
 
 use super::request::RequestAddressType;
 
-pub async fn parse_request_destination<'a>(
-    dns_resolver: &DnsResolver,
-    buffer: &'a [u8],
-) -> Result<(SocketAddr, &'a [u8])> {
-    let (address_type, buffer) = RequestAddressType::parse(buffer)?;
-    match address_type {
-        RequestAddressType::Ipv4 => parse_ipv4(buffer),
-        RequestAddressType::DomainName => parse_domain_name(dns_resolver, buffer).await,
-        RequestAddressType::Ipv6 => parse_ipv6(buffer),
+#[derive(Debug)]
+pub enum Destination {
+    Ip(SocketAddr),
+    DomainName { domain: String, port: u16 },
+}
+
+impl Destination {
+    pub async fn parse(buffer: &[u8]) -> Result<(Destination, &[u8])> {
+        let (address_type, buffer) = RequestAddressType::parse(buffer)?;
+        match address_type {
+            RequestAddressType::Ipv4 => parse_ipv4(buffer),
+            RequestAddressType::DomainName => parse_domain_name(buffer),
+            RequestAddressType::Ipv6 => parse_ipv6(buffer),
+        }
     }
 }
 
-fn parse_ipv4(buffer: &[u8]) -> Result<(SocketAddr, &[u8])> {
+fn parse_ipv4(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let address = buffer
         .get(0..4)
         .ok_or(anyhow!("Not long enough for IPv4 address"))?;
     let address = Ipv4Addr::from_bits(u32::from_be_bytes(address.try_into()?));
     let buffer = advance_buffer(4, buffer)?;
     let (port, buffer) = parse_port(buffer)?;
-    Ok((SocketAddrV4::new(address, port).into(), buffer))
+    Ok((
+        Destination::Ip(SocketAddrV4::new(address, port).into()),
+        buffer,
+    ))
 }
 
-async fn parse_domain_name<'a>(
-    dns_resolver: &DnsResolver,
-    buffer: &'a [u8],
-) -> Result<(SocketAddr, &'a [u8])> {
+fn parse_domain_name(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let length = buffer
         .first()
         .ok_or(anyhow!("Couldn't get Domain Name length"))?;
     let length = *length as usize;
     let buffer = advance_buffer(1, buffer)?;
 
-    let domain_name = buffer
+    let domain = buffer
         .get(0..length)
         .ok_or(anyhow!("Buffer not long enough to contain domain name"))?;
-    let domain_name = std::str::from_utf8(domain_name)?;
-    let ip = dns_resolver.resolve(domain_name).await?;
+    let domain = std::str::from_utf8(domain)?.to_string();
     let buffer = advance_buffer(length, buffer)?;
 
     let (port, buffer) = parse_port(buffer)?;
 
-    let socket_address = SocketAddr::new(ip, port);
-
-    Ok((socket_address, buffer))
+    Ok((Destination::DomainName { domain, port }, buffer))
 }
 
-fn parse_ipv6(buffer: &[u8]) -> Result<(SocketAddr, &[u8])> {
+fn parse_ipv6(buffer: &[u8]) -> Result<(Destination, &[u8])> {
     let ip = buffer
         .get(0..16)
         .ok_or(anyhow!("Not long enough for IPv4 address"))?;
     let ip = Ipv6Addr::from_bits(u128::from_be_bytes(ip.try_into()?));
     let buffer = advance_buffer(16, buffer)?;
     let (port, buffer) = parse_port(buffer)?;
-    Ok((SocketAddrV6::new(ip, port, 0, 0).into(), buffer))
+    Ok((
+        Destination::Ip(SocketAddrV6::new(ip, port, 0, 0).into()),
+        buffer,
+    ))
 }
 
 fn parse_port(buffer: &[u8]) -> Result<(u16, &[u8])> {
@@ -74,13 +79,12 @@ fn parse_port(buffer: &[u8]) -> Result<(u16, &[u8])> {
 mod tests {
 
     use core::slice::SlicePattern;
+    use std::net::SocketAddr;
 
     use super::*;
 
     #[tokio::test]
     async fn test_parse_ipv4() {
-        let dns_resolver = DnsResolver::new().await;
-
         let atype = [0x01];
         let ip = [8u8, 8, 8, 8];
         let port = 80u16.to_be_bytes();
@@ -92,18 +96,19 @@ mod tests {
             payload.as_slice(),
         ]
         .concat();
-        let (destination, buffer) = parse_request_destination(&dns_resolver, buffer.as_slice())
-            .await
-            .unwrap();
+        let (destination, buffer) = Destination::parse(buffer.as_slice()).await.unwrap();
         let google1: SocketAddr = SocketAddrV4::new(Ipv4Addr::new(8, 8, 8, 8), 80).into();
-        assert_eq!(google1, destination);
-        assert_eq!(4, buffer.len());
-        assert_eq!([1, 2, 3, 4], buffer);
+        if let Destination::Ip(ip) = destination {
+            assert_eq!(google1, ip);
+            assert_eq!(4, buffer.len());
+            assert_eq!([1, 2, 3, 4], buffer);
+        } else {
+            panic!();
+        }
     }
 
     #[tokio::test]
-    async fn test_parse_dns() {
-        let dns_resolver = DnsResolver::new().await;
+    async fn test_parse_domain() {
         let atype = [0x3u8];
         let name = "dns.google".as_bytes();
         let length = [name.len() as u8];
@@ -117,13 +122,14 @@ mod tests {
             payload.as_slice(),
         ]
         .concat();
-        let (ip, buffer) = parse_request_destination(&dns_resolver, buffer.as_slice())
-            .await
-            .unwrap();
-        let google1 = SocketAddrV4::new(Ipv4Addr::new(8, 8, 8, 8), 80).into();
-        let google2 = SocketAddrV4::new(Ipv4Addr::new(8, 8, 4, 4), 80).into();
-        assert!(ip == google1 || ip == google2);
-        assert_eq!(4, buffer.len());
-        assert_eq!([1, 2, 3, 4], buffer.as_slice());
+        let (ip, buffer) = Destination::parse(buffer.as_slice()).await.unwrap();
+        if let Destination::DomainName { domain, port } = ip {
+            assert_eq!(domain, "dns.google");
+            assert_eq!(port, 80);
+            assert_eq!(4, buffer.len());
+            assert_eq!([1, 2, 3, 4], buffer.as_slice());
+        } else {
+            panic!()
+        }
     }
 }

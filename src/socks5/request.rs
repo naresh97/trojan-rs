@@ -1,12 +1,12 @@
-use std::net::SocketAddr;
-
 use anyhow::{anyhow, Result};
 
 use crate::utils::advance_buffer;
 
+use super::destination::Destination;
+
 pub struct Request {
     command: RequestCommand,
-    destination: SocketAddr,
+    destination: Destination,
 }
 
 #[derive(PartialEq, Eq, Debug)]
