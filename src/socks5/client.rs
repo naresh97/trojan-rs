@@ -21,9 +21,10 @@ use super::{
     request::{create_response, Request},
 };
 
-pub async fn main() -> Result<()> {
+pub async fn main(config_file: Option<String>) -> Result<()> {
     info!("Starting SOCKS5 Trojan Client");
-    let config = ClientConfig::load(Path::new("samples/client.toml"))?;
+    let config_file = config_file.unwrap_or("client.toml".to_string());
+    let config = ClientConfig::load(Path::new(&config_file))?;
     let listener = TcpListener::bind(&config.listening_addr).await?;
 
     let connector = get_tls_connector()?;

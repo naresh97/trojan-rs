@@ -1,7 +1,6 @@
 #![feature(slice_pattern)]
 
-use std::env;
-
+use config::cli::{Application, Cli};
 use simple_logger::SimpleLogger;
 
 mod config;
@@ -13,15 +12,14 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
+    let cli = Cli::parse().unwrap();
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(cli.log_level)
         .env()
         .init()
         .unwrap();
-
-    let args: Vec<String> = env::args().collect();
-    match args.get(1).map(|x| x.as_str()) {
-        Some("client") => socks5::client::main().await.unwrap(),
-        Some(_) | None => trojan::server::main().await.unwrap(),
+    match cli.command {
+        Application::Client => socks5::client::main(cli.config_file).await.unwrap(),
+        Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
     };
 }
