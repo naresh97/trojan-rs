@@ -5,3 +5,5 @@ pub fn advance_buffer(length: usize, buffer: &[u8]) -> Result<&[u8]> {
         .get(length..)
         .ok_or(anyhow!("Couldn't get remaning buffer"))
 }
+
+pub const BUFFER_SIZE: usize = 0x1000;
