@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::utils::advance_buffer;
+use crate::utils::{advance_buffer, as_socket_address};
 
 use super::request::AddressType;
 
@@ -10,6 +10,17 @@ use super::request::AddressType;
 pub enum Destination {
     Address(SocketAddr),
     DomainName { domain: String, port: u16 },
+}
+
+impl TryInto<SocketAddr> for Destination {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> std::result::Result<SocketAddr, Self::Error> {
+        match self {
+            Destination::Address(address) => Ok(address),
+            Destination::DomainName { domain, port } => as_socket_address(&domain, port),
+        }
+    }
 }
 
 impl Destination {

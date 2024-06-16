@@ -3,8 +3,11 @@ use sha2::{Digest, Sha224};
 
 use crate::{
     adapters::socks5::{self},
-    utils::{advance_buffer, CRLF},
+    utils::advance_buffer,
 };
+
+pub const CRLF: [u8; 2] = [0x0D, 0x0A];
+
 pub struct TrojanHandshake {
     pub password: String,
     #[allow(unused)]

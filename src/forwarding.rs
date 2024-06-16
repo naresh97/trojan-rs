@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use anyhow::Result;
 use log::debug;
 use tokio::{
@@ -5,25 +7,17 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{adapters::socks5, utils::as_socket_address};
-
 pub struct SimpleForwardingClient {
     stream: TcpStream,
 }
 
 impl SimpleForwardingClient {
-    pub async fn new(destination: socks5::protocol::Destination) -> Result<SimpleForwardingClient> {
-        let (address, domain) = match destination {
-            socks5::protocol::Destination::Address(ip) => (ip, ip.ip().to_string()),
-            socks5::protocol::Destination::DomainName { domain, port } => {
-                (as_socket_address(&domain, port)?, domain)
-            }
-        };
+    pub async fn new(destination: &SocketAddr) -> Result<SimpleForwardingClient> {
         debug!(
-            "Creating new forwarding socket with IP: {}, Domain: {}",
-            address, domain
+            "Creating new forwarding socket with address: {}",
+            destination
         );
-        let stream = TcpStream::connect(address).await?;
+        let stream = TcpStream::connect(destination).await?;
         Ok(SimpleForwardingClient { stream })
     }
     pub async fn forward(
