@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-tokio = { version = "1.38", features = [
+tokio = { version = "1.38", default-features = false, features = [
     "macros",
     "rt-multi-thread",
     "net",
@@ -16,10 +16,19 @@ tokio-native-tls = "0.3.1"
 hex = "0.4.3"
 log = "0.4.21"
 serde = { version = "1.0.203", features = ["derive"] }
-toml = "0.8.14"
+toml = { version = "0.8.14", default-features = false, features = ["parse"] }
 sha2 = "0.10.8"
 simple_logger = "5.0.0"
 pico-args = "0.5.0"
+
+[dev-dependencies]
+toml = "0.8.14"
+
+[features]
+default = ["all-clients", "server"]
+all-clients = ["socks5"]
+socks5 = []
+server = []
 
 [profile.release]
 opt-level = "z"

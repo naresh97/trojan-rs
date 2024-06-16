@@ -23,9 +23,17 @@ async fn main() {
     match cli.command {
         Application::Client => match cli.client_adapter_type {
             ClientAdapterType::Socks5 => {
-                socks5::Socks5Adapter::main(cli.config_file).await.unwrap()
+                #[cfg(feature = "socks5")]
+                return socks5::Socks5Adapter::main(cli.config_file).await.unwrap();
+                #[cfg(not(feature = "socks5"))]
+                panic!("Not compiled");
             }
         },
-        Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
+        Application::Server => {
+            #[cfg(feature = "server")]
+            return trojan::server::main(cli.config_file).await.unwrap();
+            #[cfg(not(feature = "server"))]
+            panic!("Not compiled");
+        }
     };
 }
