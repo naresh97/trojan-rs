@@ -1,9 +1,9 @@
 #![feature(slice_pattern)]
 
 use clap::Parser;
+use config::cli::{Application, Cli};
 use simple_logger::SimpleLogger;
 
-mod cli;
 mod config;
 mod forwarding;
 mod socks5;
@@ -18,11 +18,11 @@ async fn main() {
         .env()
         .init()
         .unwrap();
-    let cli = cli::Cli::parse();
+    let cli = Cli::parse();
     match cli.command {
-        cli::Application::Client { adapter: _adapter } => {
+        Application::Client { adapter: _adapter } => {
             socks5::client::main(cli.config_file).await.unwrap()
         }
-        cli::Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
+        Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
     };
 }
