@@ -17,10 +17,11 @@ pub fn get_tls_acceptor(server_config: &ServerConfig) -> Result<tokio_native_tls
 pub fn get_tls_connector() -> Result<tokio_native_tls::TlsConnector> {
     let mut builder = native_tls::TlsConnector::builder();
 
-    if cfg!(debug_assertions) {
+    if true {
+        //cfg!(debug_assertions) {
         builder
-        .danger_accept_invalid_certs(true)
-        .danger_accept_invalid_hostnames(true);
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true);
         let ca = std::fs::read_to_string("ca.pem")
             .context("Can't read ca.pem")
             .and_then(|ca| {
