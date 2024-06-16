@@ -1,11 +1,10 @@
-use std::net::SocketAddr;
+use std::net::{SocketAddr, ToSocketAddrs};
 
 use crate::{
     config::ClientConfig,
     socks5::{self, destination::Destination},
-    utils::as_socket_address,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tokio::{
     io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
@@ -26,12 +25,19 @@ impl TrojanClient {
         client_config: &ClientConfig,
         connector: &TlsConnector,
     ) -> Result<TrojanClient> {
-        let domain = client_config.server_domain.clone();
-        let port = client_config.server_port;
-        let address = as_socket_address(&domain, port)?;
+        let domain = client_config
+            .server_addr
+            .split(':')
+            .next()
+            .context("Couldn't get domain from address string")?;
+        let address = client_config
+            .server_addr
+            .to_socket_addrs()
+            .context("Couldn't get SocketAddr from address")
+            .and_then(|mut x| x.next().context("Couldn't get SocketAddr from address"))?;
         let stream = TcpStream::connect(address).await?;
         let local_addr = stream.local_addr()?;
-        let stream = connector.connect(&domain, stream).await?;
+        let stream = connector.connect(domain, stream).await?;
         Ok(TrojanClient {
             stream,
             destination,
