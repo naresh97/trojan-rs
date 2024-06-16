@@ -1,11 +1,12 @@
 #![feature(slice_pattern)]
 
+use adapters::socks5;
 use config::cli::{Application, Cli};
 use simple_logger::SimpleLogger;
 
+mod adapters;
 mod config;
 mod forwarding;
-mod socks5;
 mod tls;
 mod trojan;
 mod utils;

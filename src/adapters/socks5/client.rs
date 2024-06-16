@@ -9,16 +9,11 @@ use tokio::{
 use tokio_native_tls::TlsConnector;
 
 use crate::{
+    adapters::socks5::protocol,
     config::{ClientConfig, LoadFromToml},
-    socks5::identify::parse_identify_block,
     tls::io::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
-};
-
-use super::{
-    identify::IDENTIFY_RESPONSE,
-    request::{create_response, Request},
 };
 
 pub async fn main(config_file: Option<String>) -> Result<()> {
@@ -91,16 +86,18 @@ async fn handle_socket_setup(
     match client_state {
         ClientState::Open(_) => unreachable!(),
         ClientState::WaitForIdentify => {
-            let _ = parse_identify_block(&buffer)?;
+            let _ = protocol::parse_identify_block(&buffer)?;
             *client_state = ClientState::WaitForRequest;
-            stream.write_all(IDENTIFY_RESPONSE.as_slice()).await?;
+            stream
+                .write_all(protocol::IDENTIFY_RESPONSE.as_slice())
+                .await?;
             debug!("SOCKS5: ID done");
         }
         ClientState::WaitForRequest => {
-            let (request, _buffer) = Request::parse(&buffer)?;
+            let (request, _buffer) = protocol::request::Request::parse(&buffer)?;
 
             let client = TrojanClient::new(request.destination, client_config, connector).await?;
-            let response = create_response(&client.local_addr)?;
+            let response = protocol::request::create_response(&client.local_addr)?;
             *client_state = ClientState::Open(client);
             stream.write_all(&response).await?;
             debug!("SOCKS5: Request created");

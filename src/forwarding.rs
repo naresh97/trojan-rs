@@ -5,17 +5,19 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{socks5::destination::Destination, utils::as_socket_address};
+use crate::{adapters::socks5, utils::as_socket_address};
 
 pub struct SimpleForwardingClient {
     stream: TcpStream,
 }
 
 impl SimpleForwardingClient {
-    pub async fn new(destination: Destination) -> Result<SimpleForwardingClient> {
+    pub async fn new(destination: socks5::protocol::Destination) -> Result<SimpleForwardingClient> {
         let (address, domain) = match destination {
-            Destination::Address(ip) => (ip, ip.ip().to_string()),
-            Destination::DomainName { domain, port } => (as_socket_address(&domain, port)?, domain),
+            socks5::protocol::Destination::Address(ip) => (ip, ip.ip().to_string()),
+            socks5::protocol::Destination::DomainName { domain, port } => {
+                (as_socket_address(&domain, port)?, domain)
+            }
         };
         debug!(
             "Creating new forwarding socket with IP: {}, Domain: {}",

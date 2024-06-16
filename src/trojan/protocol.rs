@@ -2,14 +2,14 @@ use anyhow::{anyhow, Context, Result};
 use sha2::{Digest, Sha224};
 
 use crate::{
-    socks5::{self, destination::Destination},
+    adapters::socks5::{self},
     utils::{advance_buffer, CRLF},
 };
 pub struct TrojanHandshake {
     pub password: String,
     #[allow(unused)]
-    pub command: socks5::request::RequestCommand,
-    pub destination: Destination,
+    pub command: socks5::protocol::request::Command,
+    pub destination: socks5::protocol::Destination,
     pub payload: Vec<u8>,
 }
 
@@ -31,8 +31,8 @@ impl TrojanHandshake {
 
         let buffer = check_crlf_and_advance(buffer)?;
 
-        let (command, buffer) = socks5::request::RequestCommand::parse(buffer)?;
-        let (destination, buffer) = Destination::parse(buffer)?;
+        let (command, buffer) = socks5::protocol::request::Command::parse(buffer)?;
+        let (destination, buffer) = socks5::protocol::Destination::parse(buffer)?;
 
         let payload = check_crlf_and_advance(buffer)?.to_vec();
         Ok(TrojanHandshake {

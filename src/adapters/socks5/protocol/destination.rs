@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::utils::advance_buffer;
 
-use super::request::RequestAddressType;
+use super::request::AddressType;
 
 #[derive(Debug, Clone)]
 pub enum Destination {
@@ -14,18 +14,18 @@ pub enum Destination {
 
 impl Destination {
     pub fn parse(buffer: &[u8]) -> Result<(Destination, &[u8])> {
-        let (address_type, buffer) = RequestAddressType::parse(buffer)?;
+        let (address_type, buffer) = AddressType::parse(buffer)?;
         match address_type {
-            RequestAddressType::Ipv4 => parse_ipv4(buffer),
-            RequestAddressType::DomainName => parse_domain_name(buffer),
-            RequestAddressType::Ipv6 => parse_ipv6(buffer),
+            AddressType::Ipv4 => parse_ipv4(buffer),
+            AddressType::DomainName => parse_domain_name(buffer),
+            AddressType::Ipv6 => parse_ipv6(buffer),
         }
     }
     pub fn as_bytes(&self) -> Vec<u8> {
         match self {
             Destination::Address(address) => match address {
                 SocketAddr::V4(address) => {
-                    let address_type = [RequestAddressType::Ipv4.as_byte()];
+                    let address_type = [AddressType::Ipv4.as_byte()];
                     let ip = address.ip().to_bits().to_be_bytes();
                     let port = address.port().to_be_bytes();
                     [address_type.as_slice(), ip.as_slice(), port.as_slice()]
@@ -33,7 +33,7 @@ impl Destination {
                         .to_vec()
                 }
                 SocketAddr::V6(address) => {
-                    let address_type = [RequestAddressType::Ipv6.as_byte()];
+                    let address_type = [AddressType::Ipv6.as_byte()];
                     let ip = address.ip().to_bits().to_be_bytes();
                     let port = address.port().to_be_bytes();
                     [address_type.as_slice(), ip.as_slice(), port.as_slice()]
@@ -42,7 +42,7 @@ impl Destination {
                 }
             },
             Destination::DomainName { domain, port } => {
-                let address_type = [RequestAddressType::DomainName.as_byte()];
+                let address_type = [AddressType::DomainName.as_byte()];
                 let domain = domain.as_bytes();
                 let length = [domain.len() as u8];
                 let port = port.to_be_bytes();
