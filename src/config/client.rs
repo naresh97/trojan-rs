@@ -15,7 +15,7 @@ impl LoadFromToml for ClientConfig {}
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            listening_addr: "0.0.0.0:1235".to_string(),
+            listening_addr: "0.0.0.0:1080".to_string(),
             password: "12345".to_string(),
             server_domain: "example.com".to_string(),
             server_port: 443,

@@ -1,3 +1,5 @@
 *
 !.gitignore
 !gen_certs.sh
+!server.toml
+!client.toml
