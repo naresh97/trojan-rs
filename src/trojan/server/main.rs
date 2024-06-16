@@ -9,9 +9,10 @@ use crate::{
     trojan::server::socket_handling::handle_socket,
 };
 
-pub async fn main() -> anyhow::Result<()> {
+pub async fn main(config_file: Option<String>) -> anyhow::Result<()> {
     info!("Starting Trojan Server");
-    let server_config = ServerConfig::load(Path::new("samples/server.toml"))?;
+    let config_file = config_file.unwrap_or("server.toml".to_string());
+    let server_config = ServerConfig::load(Path::new(&config_file))?;
     info!("Loaded configs, ready to listen.");
 
     let tls_acceptor = get_tls_acceptor(&server_config)?;
