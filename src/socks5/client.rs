@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use log::{debug, error};
+use log::{debug, info};
 use tokio::{
     io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
@@ -23,7 +23,7 @@ use super::{
 };
 
 pub async fn client_main() -> Result<()> {
-    debug!("Starting SOCKS5 Trojan Client");
+    info!("Starting SOCKS5 Trojan Client");
     let config = ClientConfig::load(Path::new("samples/client.toml"))?;
     let listener = TcpListener::bind(&config.listening_addr).await?;
     let dns_resolver = DnsResolver::new().await;
@@ -34,6 +34,7 @@ pub async fn client_main() -> Result<()> {
         None
     };
     let connector = get_tls_connector(self_signed_ca)?;
+    info!("Loaded configs and ready to proxy requests");
 
     loop {
         let (stream, _) = listener.accept().await?;
@@ -42,7 +43,7 @@ pub async fn client_main() -> Result<()> {
         let config = config.clone();
         tokio::spawn(async move {
             if let Err(err) = handle_socket(stream, &dns_resolver, &connector, &config).await {
-                error!("{}", err);
+                debug!("{}", err);
             }
             debug!("Ending socket.");
         });
