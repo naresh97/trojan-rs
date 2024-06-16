@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-
-use aws_lc_rs::digest;
+use sha2::{Digest, Sha224};
 
 use crate::{
     socks5::{self, destination::Destination},
@@ -75,6 +74,8 @@ fn check_crlf_and_advance(buffer: &[u8]) -> Result<&[u8]> {
 }
 
 pub fn hash_password(clear_text: &str) -> String {
-    let hash = digest::digest(&digest::SHA224, clear_text.as_bytes());
-    hex::encode(hash.as_ref())
+    let mut hasher = Sha224::new();
+    hasher.update(clear_text);
+    let result = hasher.finalize();
+    hex::encode(result)
 }

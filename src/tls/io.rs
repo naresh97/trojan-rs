@@ -1,35 +1,32 @@
-use std::sync::Arc;
+use crate::config::ServerConfig;
 
-use anyhow::Result;
-use rustls::pki_types::CertificateDer;
-use tokio_rustls::{TlsAcceptor, TlsConnector};
+use anyhow::{Context, Result};
+use native_tls::{Certificate, Identity};
 
-use super::certificates::Certificates;
-
-pub fn get_tls_acceptor(certificates: Certificates<'static>) -> Result<TlsAcceptor> {
-    let config = rustls::ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(
-            certificates.cert.clone(),
-            certificates.private_key.clone_key(),
-        )?;
-    let acceptor = TlsAcceptor::from(Arc::new(config));
+pub fn get_tls_acceptor(server_config: &ServerConfig) -> Result<tokio_native_tls::TlsAcceptor> {
+    let pem = std::fs::read_to_string(&server_config.certificate_path)
+        .context("Server Certificate File")?;
+    let key = std::fs::read_to_string(&server_config.private_key_path)
+        .context("Server Private Key File")?;
+    let identity = Identity::from_pkcs8(pem.as_bytes(), key.as_bytes())?;
+    let acceptor = native_tls::TlsAcceptor::builder(identity).build()?;
+    let acceptor = tokio_native_tls::TlsAcceptor::from(acceptor);
     Ok(acceptor)
 }
 
-pub fn get_tls_connector(self_signed: Option<CertificateDer<'static>>) -> Result<TlsConnector> {
-    let mut root_store =
-        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
+pub fn get_tls_connector() -> Result<tokio_native_tls::TlsConnector> {
+    let mut builder = native_tls::TlsConnector::builder();
     if cfg!(debug_assertions) {
-        // Allow the use of self-signed certificates in the debug builds to test
-        if let Some(self_signed) = self_signed {
-            root_store.add(self_signed)?;
+        let ca = std::fs::read_to_string("ca.pem")
+            .context("Can't read ca.pem")
+            .and_then(|ca| {
+                Certificate::from_pem(ca.as_bytes()).context("Can't parse ca.pem as certificate")
+            });
+        if let Ok(ca) = ca {
+            builder.add_root_certificate(ca);
         }
     }
-
-    let config = rustls::ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
-    Ok(TlsConnector::from(Arc::new(config)))
+    let connector = builder.build()?;
+    let connector = tokio_native_tls::TlsConnector::from(connector);
+    Ok(connector)
 }

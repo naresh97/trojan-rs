@@ -1,3 +1,5 @@
+use std::net::{SocketAddr, ToSocketAddrs};
+
 use anyhow::{anyhow, Result};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
@@ -17,4 +19,14 @@ pub async fn read_to_buffer(stream: &mut (impl AsyncRead + Unpin)) -> Result<Vec
         Err(e) => Err(e.into()),
         Ok(n) => Ok(buffer[..n].to_vec()),
     }
+}
+
+pub fn as_socket_address(domain: &str, port: u16) -> Result<SocketAddr> {
+    let mut address = (domain, port).to_socket_addrs()?;
+    let address = address.next().ok_or(anyhow!(
+        "Couldn't resolve socket address from ({},{})",
+        domain,
+        port
+    ))?;
+    Ok(address)
 }
