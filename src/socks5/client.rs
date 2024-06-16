@@ -1,6 +1,4 @@
-use std::io::ErrorKind;
-
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::{debug, error};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -50,54 +48,61 @@ async fn handle_socket(
     connector: &TlsConnector,
 ) -> Result<()> {
     let mut client_state = ClientState::WaitForIdentify;
+
     loop {
-        stream.readable().await?;
-        let mut buffer = Vec::with_capacity(BUFFER_SIZE);
-        match stream.read_buf(&mut buffer).await {
-            Ok(0) => break,
-            Ok(n) => {
-                handle_incoming(
-                    &buffer[..n],
-                    &mut stream,
-                    &mut client_state,
-                    dns_resolver,
-                    connector,
-                )
-                .await?
+        match &mut client_state {
+            ClientState::Open(forwarding) => handle_forwarding(forwarding, &mut stream).await?,
+            _ => {
+                handle_socket_setup(&mut client_state, &mut stream, connector, dns_resolver).await?
             }
-            Err(ref e) if e.kind() == ErrorKind::WouldBlock => continue,
-            Err(e) => return Err(e.into()),
         }
     }
+}
+
+async fn handle_forwarding(
+    forwarding: &mut ForwardingClient,
+    client_stream: &mut TcpStream,
+) -> Result<()> {
+    forwarding.forward(client_stream).await?;
     Ok(())
 }
 
-async fn handle_incoming(
-    buffer: &[u8],
-    stream: &mut TcpStream,
+async fn handle_socket_setup(
     client_state: &mut ClientState,
-    dns_resolver: &DnsResolver,
+    stream: &mut TcpStream,
     connector: &TlsConnector,
+    dns_resolver: &DnsResolver,
 ) -> Result<()> {
+    let buffer = read_to_buffer(stream).await?;
     match client_state {
+        ClientState::Open(_) => unreachable!(),
         ClientState::WaitForIdentify => {
-            let _ = parse_identify_block(buffer)?;
+            let _ = parse_identify_block(&buffer)?;
             *client_state = ClientState::WaitForRequest;
             stream.write_all(IDENTIFY_RESPONSE.as_slice()).await?;
             debug!("SOCKS5: ID done");
         }
         ClientState::WaitForRequest => {
-            let (request, _buffer) = Request::parse(buffer)?;
+            let (request, _buffer) = Request::parse(&buffer)?;
             let client =
                 ForwardingClient::new(connector, dns_resolver, request.destination, false).await?;
             let response = create_response(&client.local_addr)?;
             *client_state = ClientState::Open(client);
-            debug!("SOCKS5: Request created");
             stream.write_all(&response).await?;
-        }
-        ClientState::Open(client) => {
-            client.forward_into_writer(buffer, stream).await?;
+            debug!("SOCKS5: Request created");
         }
     }
     Ok(())
+}
+
+async fn read_to_buffer(stream: &mut TcpStream) -> Result<Vec<u8>> {
+    stream.readable().await?;
+    let mut buffer = Vec::with_capacity(BUFFER_SIZE);
+    match stream.read_buf(&mut buffer).await {
+        Ok(0) => return Err(anyhow!("Socket closed")),
+        Err(e) => return Err(e.into()),
+        Ok(n) => {
+            return Ok(buffer[..n].to_vec());
+        }
+    }
 }
