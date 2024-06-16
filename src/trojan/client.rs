@@ -13,7 +13,7 @@ use crate::{
     socks5::{self, destination::Destination},
 };
 
-use super::protocol::TrojanHandshake;
+use super::protocol::{hash_password, TrojanHandshake};
 
 pub struct TrojanClient {
     stream: TlsStream<TcpStream>,
@@ -48,7 +48,7 @@ impl TrojanClient {
         client_config: &ClientConfig,
     ) -> Result<()> {
         let handshake = TrojanHandshake {
-            password: client_config.password.clone(),
+            password: hash_password(&client_config.password),
             command: socks5::request::RequestCommand::Connect,
             destination: self.destination.clone(),
             payload: payload.to_vec(),
