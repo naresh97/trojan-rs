@@ -1,6 +1,10 @@
 use crate::{
-    config::ServerConfig, dns::DnsResolver, forwarding_client::ForwardingClient,
-    socks5::destination::Destination, trojan::protocol::TrojanRequest, utils::read_to_buffer,
+    config::ServerConfig,
+    dns::DnsResolver,
+    forwarding_client::ForwardingClient,
+    socks5::destination::Destination,
+    trojan::protocol::{hash_password, TrojanHandshake},
+    utils::read_to_buffer,
 };
 use anyhow::{anyhow, Result};
 use tokio::net::TcpStream;
@@ -41,8 +45,8 @@ async fn handle_handshake(
 ) -> Result<()> {
     let buffer = read_to_buffer(stream).await?;
 
-    let request = TrojanRequest::parse(&buffer).await.and_then(|req| {
-        match server_config.is_password_correct(&req.password) {
+    let request = TrojanHandshake::parse(&buffer).await.and_then(|req| {
+        match hash_password(&server_config.password) == req.password {
             true => Ok(req),
             false => Err(anyhow!("Password was incorrect")),
         }
@@ -51,14 +55,13 @@ async fn handle_handshake(
     match request {
         Ok(request) => {
             let payload = request.payload.clone();
-            let mut forwarding_client = request
-                .into_forwarding_client(connector, dns_resolver)
-                .await?;
+            let mut forwarding_client =
+                ForwardingClient::new(connector, dns_resolver, request.destination, true).await?;
             forwarding_client.write_buffer(&payload).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
         Err(_e) => {
-            let fallback_destination = Destination::Ip(server_config.fallback_addr.parse()?);
+            let fallback_destination = Destination::Address(server_config.fallback_addr.parse()?);
             let mut forwarding_client =
                 ForwardingClient::new(connector, dns_resolver, fallback_destination, false).await?;
             forwarding_client.write_buffer(&buffer).await?;

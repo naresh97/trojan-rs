@@ -25,8 +25,8 @@ impl ForwardingClient {
         destination: Destination,
         use_tls: bool,
     ) -> Result<ForwardingClient> {
-        let (ip, domain) = match destination {
-            Destination::Ip(ip) => (ip, ip.ip().to_string()),
+        let (address, domain) = match destination {
+            Destination::Address(ip) => (ip, ip.ip().to_string()),
             Destination::DomainName { domain, port } => (
                 SocketAddr::new(dns_resolver.resolve(&domain).await?, port),
                 domain,
@@ -34,9 +34,9 @@ impl ForwardingClient {
         };
         debug!(
             "Creating new forwarding socket with IP: {}, Domain: {}",
-            ip, domain
+            address, domain
         );
-        let stream = TcpStream::connect(ip).await?;
+        let stream = TcpStream::connect(address).await?;
         let local_addr = stream.local_addr()?;
         let stream: Box<dyn AsyncStream> = if use_tls {
             Box::new(connector.connect(domain.try_into()?, stream).await?)
