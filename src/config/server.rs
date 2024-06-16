@@ -17,7 +17,7 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             password: "12345".to_string(),
-            fallback_addr: "192.168.0.107:2205".to_string(),
+            fallback_addr: "127.0.0.1:8080".to_string(),
             listen_addr: "0.0.0.0:443".to_string(),
             certificate_path: "samples/cert.pem".to_string(),
             private_key_path: "samples/private.pem".to_string(),
