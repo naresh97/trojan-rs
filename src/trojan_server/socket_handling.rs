@@ -1,4 +1,4 @@
-use crate::{config::ServerConfig, dns::DnsResolver};
+use crate::{config::ServerConfig, dns::DnsResolver, socks5::destination::Destination};
 use anyhow::{anyhow, Result};
 use log::debug;
 use std::io::ErrorKind;
@@ -86,7 +86,7 @@ impl SocketState {
                 let mut client = ForwardingClient::new(
                     tls_connector,
                     dns_resolver,
-                    server_config.get_fallback_addr()?,
+                    Destination::from_ip(&server_config.fallback_addr)?,
                 )
                 .await?;
                 let result = client.forward(buffer).await;

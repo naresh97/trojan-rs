@@ -22,7 +22,7 @@ pub async fn server_main() -> anyhow::Result<()> {
     )?;
     let acceptor = get_tls_acceptor(certificates)?;
     let connector = get_tls_connector();
-    let listener = TcpListener::bind(&server_config.listening_address).await?;
+    let listener = TcpListener::bind(&server_config.listen_addr).await?;
     let dns_resolver = Arc::new(DnsResolver::new().await);
     debug!("Loaded configs, ready to listen.");
     loop {
