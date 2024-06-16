@@ -9,37 +9,36 @@ use tokio::{
 use tokio_native_tls::TlsConnector;
 
 use crate::{
+    adapters::{socks5::protocol, ClientAdapter},
     config::{ClientConfig, LoadFromToml},
-    socks5::identify::parse_identify_block,
-    tls::io::get_tls_connector,
+    networking::tls::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
 
-use super::{
-    identify::IDENTIFY_RESPONSE,
-    request::{create_response, Request},
-};
+pub struct Socks5Adapter {}
 
-pub async fn main(config_file: Option<String>) -> Result<()> {
-    info!("Starting SOCKS5 Trojan Client");
-    let config_file = config_file.unwrap_or("client.toml".to_string());
-    let config = ClientConfig::load(Path::new(&config_file))?;
-    let listener = TcpListener::bind(&config.listening_addr).await?;
+impl ClientAdapter for Socks5Adapter {
+    async fn main(config_file: Option<String>) -> anyhow::Result<()> {
+        info!("Starting SOCKS5 Trojan Client");
+        let config_file = config_file.unwrap_or("client.toml".to_string());
+        let config = ClientConfig::load(Path::new(&config_file))?;
+        let listener = TcpListener::bind(&config.listening_addr).await?;
 
-    let connector = get_tls_connector()?;
-    info!("Loaded configs and ready to proxy requests");
+        let connector = get_tls_connector()?;
+        info!("Loaded configs and ready to proxy requests");
 
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let connector = connector.clone();
-        let config = config.clone();
-        tokio::spawn(async move {
-            if let Err(err) = handle_socket(stream, &connector, &config).await {
-                debug!("{}", err);
-            }
-            debug!("Ending socket.");
-        });
+        loop {
+            let (stream, _) = listener.accept().await?;
+            let connector = connector.clone();
+            let config = config.clone();
+            tokio::spawn(async move {
+                if let Err(err) = handle_socket(stream, &connector, &config).await {
+                    debug!("{}", err);
+                }
+                debug!("Ending socket.");
+            });
+        }
     }
 }
 
@@ -91,16 +90,18 @@ async fn handle_socket_setup(
     match client_state {
         ClientState::Open(_) => unreachable!(),
         ClientState::WaitForIdentify => {
-            let _ = parse_identify_block(&buffer)?;
+            let _ = protocol::parse_identify_block(&buffer)?;
             *client_state = ClientState::WaitForRequest;
-            stream.write_all(IDENTIFY_RESPONSE.as_slice()).await?;
+            stream
+                .write_all(protocol::IDENTIFY_RESPONSE.as_slice())
+                .await?;
             debug!("SOCKS5: ID done");
         }
         ClientState::WaitForRequest => {
-            let (request, _buffer) = Request::parse(&buffer)?;
+            let (request, _buffer) = protocol::request::Request::parse(&buffer)?;
 
             let client = TrojanClient::new(request.destination, client_config, connector).await?;
-            let response = create_response(&client.local_addr)?;
+            let response = protocol::request::create_response(&client.local_addr)?;
             *client_state = ClientState::Open(client);
             stream.write_all(&response).await?;
             debug!("SOCKS5: Request created");

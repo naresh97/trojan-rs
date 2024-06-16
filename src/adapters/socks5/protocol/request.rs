@@ -8,7 +8,7 @@ use super::destination::Destination;
 
 pub struct Request {
     #[allow(unused)]
-    pub command: RequestCommand,
+    pub command: Command,
     pub destination: Destination,
 }
 
@@ -19,7 +19,7 @@ impl Request {
             bail!("Only SOCKS5 supported");
         }
         let buffer = advance_buffer(1, buffer)?;
-        let (command, buffer) = RequestCommand::parse(buffer)?;
+        let (command, buffer) = Command::parse(buffer)?;
 
         let empty = *buffer.first().ok_or(anyhow!("Could not get RSV."))?;
         if empty != 0 {
@@ -38,22 +38,22 @@ impl Request {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum RequestCommand {
+pub enum Command {
     Connect,
     Bind,
     UdpAssociate,
 }
 
-impl RequestCommand {
-    pub fn parse(buffer: &[u8]) -> Result<(RequestCommand, &[u8])> {
+impl Command {
+    pub fn parse(buffer: &[u8]) -> Result<(Command, &[u8])> {
         let command = buffer
             .get(0..1)
             .ok_or(anyhow!("Buffer not long enought to get command"))?;
 
         let command = match command {
-            [0x01] => Some(RequestCommand::Connect),
-            [0x02] => Some(RequestCommand::Bind),
-            [0x03] => Some(RequestCommand::UdpAssociate),
+            [0x01] => Some(Command::Connect),
+            [0x02] => Some(Command::Bind),
+            [0x03] => Some(Command::UdpAssociate),
             _ => None,
         }
         .ok_or(anyhow!("Unknown command type."))?;
@@ -67,28 +67,28 @@ impl RequestCommand {
     }
     pub fn as_byte(&self) -> u8 {
         match self {
-            RequestCommand::Connect => 0x01,
-            RequestCommand::Bind => 0x02,
-            RequestCommand::UdpAssociate => 0x03,
+            Command::Connect => 0x01,
+            Command::Bind => 0x02,
+            Command::UdpAssociate => 0x03,
         }
     }
 }
 
-pub enum RequestAddressType {
+pub enum AddressType {
     Ipv4,
     DomainName,
     Ipv6,
 }
 
-impl RequestAddressType {
-    pub fn parse(buffer: &[u8]) -> Result<(RequestAddressType, &[u8])> {
+impl AddressType {
+    pub fn parse(buffer: &[u8]) -> Result<(AddressType, &[u8])> {
         let address_type = buffer
             .first()
             .ok_or(anyhow!("Buffer not long enough to get address type"))?;
         let address_type = match address_type {
-            0x01 => Some(RequestAddressType::Ipv4),
-            0x03 => Some(RequestAddressType::DomainName),
-            0x04 => Some(RequestAddressType::Ipv6),
+            0x01 => Some(AddressType::Ipv4),
+            0x03 => Some(AddressType::DomainName),
+            0x04 => Some(AddressType::Ipv6),
             _ => None,
         }
         .ok_or(anyhow!("Unknown address type"))?;
@@ -96,9 +96,9 @@ impl RequestAddressType {
     }
     pub fn as_byte(&self) -> u8 {
         match self {
-            RequestAddressType::Ipv4 => 0x01,
-            RequestAddressType::DomainName => 0x03,
-            RequestAddressType::Ipv6 => 0x04,
+            AddressType::Ipv4 => 0x01,
+            AddressType::DomainName => 0x03,
+            AddressType::Ipv6 => 0x04,
         }
     }
 }
@@ -127,11 +127,11 @@ mod test {
     use super::*;
     #[test]
     fn test_parse_request_command() {
-        assert!(RequestCommand::parse(&[]).is_err());
-        assert!(RequestCommand::parse(&[123u8]).is_err());
+        assert!(Command::parse(&[]).is_err());
+        assert!(Command::parse(&[123u8]).is_err());
 
-        let (command, buffer) = RequestCommand::parse(&[0x1, 0x88]).unwrap();
-        assert_eq!(RequestCommand::Connect, command);
+        let (command, buffer) = Command::parse(&[0x1, 0x88]).unwrap();
+        assert_eq!(Command::Connect, command);
         assert_eq!(0x88, *buffer.first().unwrap());
         assert_eq!(1, buffer.len());
     }

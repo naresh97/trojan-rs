@@ -1,7 +1,7 @@
 use crate::{
+    adapters::socks5,
     config::ServerConfig,
-    forwarding::SimpleForwardingClient,
-    socks5::destination::Destination,
+    networking::forwarding::SimpleForwardingClient,
     trojan::protocol::{hash_password, TrojanHandshake},
     utils::read_to_buffer,
 };
@@ -45,14 +45,17 @@ async fn handle_handshake(
         Ok(request) => {
             debug!("Handshake succeeded");
             let payload = request.payload.clone();
-            let mut forwarding_client = SimpleForwardingClient::new(request.destination).await?;
+            let mut forwarding_client =
+                SimpleForwardingClient::new(&request.destination.try_into()?).await?;
             forwarding_client.write_buffer(&payload).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
         Err(e) => {
             debug!("Handshake failed: {}. Using fallback.", e);
-            let fallback_destination = Destination::Address(server_config.fallback_addr.parse()?);
-            let mut forwarding_client = SimpleForwardingClient::new(fallback_destination).await?;
+            let fallback_destination =
+                socks5::protocol::Destination::Address(server_config.fallback_addr.parse()?);
+            let mut forwarding_client =
+                SimpleForwardingClient::new(&fallback_destination.try_into()?).await?;
             forwarding_client.write_buffer(&buffer).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }

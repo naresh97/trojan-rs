@@ -1,8 +1,8 @@
 use std::net::{SocketAddr, ToSocketAddrs};
 
 use crate::{
+    adapters::socks5::{self},
     config::ClientConfig,
-    socks5::{self, destination::Destination},
 };
 use anyhow::{Context, Result};
 use tokio::{
@@ -15,13 +15,13 @@ use super::protocol::{hash_password, TrojanHandshake};
 
 pub struct TrojanClient {
     stream: TlsStream<TcpStream>,
-    destination: Destination,
+    destination: socks5::protocol::Destination,
     pub local_addr: SocketAddr,
 }
 
 impl TrojanClient {
     pub async fn new(
-        destination: Destination,
+        destination: socks5::protocol::Destination,
         client_config: &ClientConfig,
         connector: &TlsConnector,
     ) -> Result<TrojanClient> {
@@ -52,7 +52,7 @@ impl TrojanClient {
     ) -> Result<()> {
         let handshake = TrojanHandshake {
             password: hash_password(&client_config.password),
-            command: socks5::request::RequestCommand::Connect,
+            command: socks5::protocol::request::Command::Connect,
             destination: self.destination.clone(),
             payload: payload.to_vec(),
         };

@@ -17,8 +17,7 @@ pub fn get_tls_acceptor(server_config: &ServerConfig) -> Result<tokio_native_tls
 pub fn get_tls_connector() -> Result<tokio_native_tls::TlsConnector> {
     let mut builder = native_tls::TlsConnector::builder();
 
-    if true {
-        //cfg!(debug_assertions) {
+    if cfg!(debug_assertions) {
         builder
             .danger_accept_invalid_certs(true)
             .danger_accept_invalid_hostnames(true);

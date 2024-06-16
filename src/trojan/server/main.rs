@@ -5,7 +5,7 @@ use tokio::net::TcpListener;
 
 use crate::{
     config::{LoadFromToml, ServerConfig},
-    tls::io::get_tls_acceptor,
+    networking::tls::get_tls_acceptor,
     trojan::server::socket_handling::handle_socket,
 };
 
