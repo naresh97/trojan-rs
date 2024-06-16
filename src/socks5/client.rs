@@ -1,14 +1,18 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use log::{debug, error};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
 };
 use tokio_rustls::TlsConnector;
 
 use crate::{
-    config::ClientConfig, dns::DnsResolver, forwarding_client::ForwardingClient,
-    socks5::identify::parse_identify_block, tls::io::get_tls_connector, utils::BUFFER_SIZE,
+    config::ClientConfig,
+    dns::DnsResolver,
+    forwarding_client::ForwardingClient,
+    socks5::identify::parse_identify_block,
+    tls::io::get_tls_connector,
+    utils::read_to_buffer,
 };
 
 use super::{
@@ -93,16 +97,4 @@ async fn handle_socket_setup(
         }
     }
     Ok(())
-}
-
-async fn read_to_buffer(stream: &mut TcpStream) -> Result<Vec<u8>> {
-    stream.readable().await?;
-    let mut buffer = Vec::with_capacity(BUFFER_SIZE);
-    match stream.read_buf(&mut buffer).await {
-        Ok(0) => return Err(anyhow!("Socket closed")),
-        Err(e) => return Err(e.into()),
-        Ok(n) => {
-            return Ok(buffer[..n].to_vec());
-        }
-    }
 }
