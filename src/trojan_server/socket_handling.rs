@@ -3,7 +3,7 @@ use crate::{
     socks5::destination::Destination, utils::read_to_buffer,
 };
 use anyhow::{anyhow, Result};
-use tokio::{io::AsyncWriteExt, net::TcpStream};
+use tokio::net::TcpStream;
 use tokio_rustls::{server::TlsStream, TlsConnector};
 
 use super::trojan::TrojanRequest;
