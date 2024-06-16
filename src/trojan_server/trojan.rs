@@ -8,9 +8,9 @@ use crate::{
     socks5::{self, destination::Destination},
     utils::advance_buffer,
 };
-
 pub struct TrojanRequest {
     pub password: Vec<u8>,
+    #[allow(unused)]
     pub command: socks5::request::RequestCommand,
     pub destination: Destination,
     pub payload: Vec<u8>,

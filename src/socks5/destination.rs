@@ -1,7 +1,4 @@
-use std::{
-    net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
-    str::FromStr,
-};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 use anyhow::{anyhow, Result};
 
@@ -23,9 +20,6 @@ impl Destination {
             RequestAddressType::DomainName => parse_domain_name(buffer),
             RequestAddressType::Ipv6 => parse_ipv6(buffer),
         }
-    }
-    pub fn from_ip(ip: &str) -> Result<Destination> {
-        Ok(Destination::Ip(SocketAddr::from_str(ip)?))
     }
 }
 

@@ -1,6 +1,5 @@
 #![feature(ip_bits)]
 #![feature(slice_pattern)]
-#![allow(dead_code)]
 
 use std::env;
 
