@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use log::debug;
 use tokio::{
-    io::{copy_bidirectional, AsyncRead, AsyncWrite},
+    io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
 use tokio_rustls::TlsConnector;
@@ -50,7 +50,13 @@ impl ForwardingClient {
         &mut self,
         client_stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
     ) -> Result<()> {
+        debug!("Beginning forwarding");
         copy_bidirectional(client_stream, &mut self.stream).await?;
+        Ok(())
+    }
+
+    pub async fn write_buffer(&mut self, buffer: &[u8]) -> Result<()> {
+        self.stream.write_all(buffer).await?;
         Ok(())
     }
 }
