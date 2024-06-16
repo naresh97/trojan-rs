@@ -6,8 +6,7 @@ use simple_logger::SimpleLogger;
 
 mod adapters;
 mod config;
-mod forwarding;
-mod tls;
+mod networking;
 mod trojan;
 mod utils;
 

@@ -1,7 +1,7 @@
 use crate::{
     adapters::socks5,
     config::ServerConfig,
-    forwarding::SimpleForwardingClient,
+    networking::forwarding::SimpleForwardingClient,
     trojan::protocol::{hash_password, TrojanHandshake},
     utils::read_to_buffer,
 };

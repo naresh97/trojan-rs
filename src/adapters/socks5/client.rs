@@ -11,7 +11,7 @@ use tokio_native_tls::TlsConnector;
 use crate::{
     adapters::{socks5::protocol, ClientAdapter},
     config::{ClientConfig, LoadFromToml},
-    tls::io::get_tls_connector,
+    networking::tls::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
