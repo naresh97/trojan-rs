@@ -6,13 +6,12 @@ use tokio::{
     io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
 };
-use tokio_rustls::TlsConnector;
+use tokio_native_tls::TlsConnector;
 
 use crate::{
     config::{ClientConfig, LoadFromToml},
-    dns::DnsResolver,
     socks5::identify::parse_identify_block,
-    tls::{certificates::load_certificates, io::get_tls_connector},
+    tls::io::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
@@ -26,23 +25,16 @@ pub async fn client_main() -> Result<()> {
     info!("Starting SOCKS5 Trojan Client");
     let config = ClientConfig::load(Path::new("samples/client.toml"))?;
     let listener = TcpListener::bind(&config.listening_addr).await?;
-    let dns_resolver = DnsResolver::new().await;
 
-    let self_signed_ca = if cfg!(debug_assertions) {
-        load_certificates("samples/ca.pem")?.first().cloned()
-    } else {
-        None
-    };
-    let connector = get_tls_connector(self_signed_ca)?;
+    let connector = get_tls_connector()?;
     info!("Loaded configs and ready to proxy requests");
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let dns_resolver = dns_resolver.clone();
         let connector = connector.clone();
         let config = config.clone();
         tokio::spawn(async move {
-            if let Err(err) = handle_socket(stream, &dns_resolver, &connector, &config).await {
+            if let Err(err) = handle_socket(stream, &connector, &config).await {
                 debug!("{}", err);
             }
             debug!("Ending socket.");
@@ -58,7 +50,6 @@ enum ClientState {
 
 async fn handle_socket(
     mut stream: TcpStream,
-    dns_resolver: &DnsResolver,
     connector: &TlsConnector,
     client_config: &ClientConfig,
 ) -> Result<()> {
@@ -70,14 +61,8 @@ async fn handle_socket(
                 handle_forwarding(forwarding, &mut stream, client_config).await?
             }
             _ => {
-                handle_socket_setup(
-                    &mut client_state,
-                    &mut stream,
-                    connector,
-                    dns_resolver,
-                    client_config,
-                )
-                .await?
+                handle_socket_setup(&mut client_state, &mut stream, connector, client_config)
+                    .await?
             }
         }
     }
@@ -99,7 +84,6 @@ async fn handle_socket_setup(
     client_state: &mut ClientState,
     stream: &mut TcpStream,
     connector: &TlsConnector,
-    dns_resolver: &DnsResolver,
     client_config: &ClientConfig,
 ) -> Result<()> {
     let buffer = read_to_buffer(stream).await?;
@@ -114,9 +98,7 @@ async fn handle_socket_setup(
         ClientState::WaitForRequest => {
             let (request, _buffer) = Request::parse(&buffer)?;
 
-            let client =
-                TrojanClient::new(request.destination, client_config, dns_resolver, connector)
-                    .await?;
+            let client = TrojanClient::new(request.destination, client_config, connector).await?;
             let response = create_response(&client.local_addr)?;
             *client_state = ClientState::Open(client);
             stream.write_all(&response).await?;

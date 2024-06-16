@@ -1,17 +1,16 @@
 use std::net::SocketAddr;
 
+use crate::{
+    config::ClientConfig,
+    socks5::{self, destination::Destination},
+    utils::as_socket_address,
+};
 use anyhow::Result;
 use tokio::{
     io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
-use tokio_rustls::{client::TlsStream, TlsConnector};
-
-use crate::{
-    config::ClientConfig,
-    dns::DnsResolver,
-    socks5::{self, destination::Destination},
-};
+use tokio_native_tls::{TlsConnector, TlsStream};
 
 use super::protocol::{hash_password, TrojanHandshake};
 
@@ -25,16 +24,14 @@ impl TrojanClient {
     pub async fn new(
         destination: Destination,
         client_config: &ClientConfig,
-        dns_resolver: &DnsResolver,
         connector: &TlsConnector,
     ) -> Result<TrojanClient> {
         let domain = client_config.server_domain.clone();
-        let ip = dns_resolver.resolve(&domain).await?;
         let port = client_config.server_port;
-        let address = SocketAddr::new(ip, port);
+        let address = as_socket_address(&domain, port)?;
         let stream = TcpStream::connect(address).await?;
         let local_addr = stream.local_addr()?;
-        let stream = connector.connect(domain.try_into()?, stream).await?;
+        let stream = connector.connect(&domain, stream).await?;
         Ok(TrojanClient {
             stream,
             destination,

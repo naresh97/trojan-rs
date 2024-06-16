@@ -3,7 +3,6 @@
 use std::env;
 
 mod config;
-mod dns;
 mod forwarding;
 mod socks5;
 mod tls;
