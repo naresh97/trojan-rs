@@ -10,26 +10,23 @@ Based on the Trojan protocol described [here](https://github.com/trojan-gfw/troj
 
 Modify `client.toml` and `server.toml` appropriately. See [samples](samples/).
 
-### Client
-
 ```
-trojan-rs client
+trojan-rs [OPTIONS] <COMMAND> [ADAPTER]
+
+Commands:
+  server  runs the Trojan Server
+  client  runs the Trojan Client with the specified adapter
+
+Options:
+  --config <FILE>   defaults to "./server.toml" or "./client.toml"
+  --log             defaults to INFO
+                    values: DEBUG, INFO, WARN, ERROR
+
+Adapter:
+  --adapter <ADAPTER_TYPE>  used in client mode
+                            defaults to socks5
+                            values: socks5
 ```
-
-### Server
-
-```
-trojan-rs
-```
-
-### Logging
-
-Logging can be enabled by setting the `RUSTLOG` environment variable.
-
-```
-RUSTLOG=debug trojan-rs
-```
-
 
 ## Architecture
 
