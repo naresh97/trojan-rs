@@ -19,10 +19,7 @@ serde = { version = "1.0.203", features = ["derive"] }
 toml = "0.8.14"
 sha2 = "0.10.8"
 simple_logger = "5.0.0"
-clap = { version = "4.5.7", default-features = false, features = [
-    "std",
-    "derive",
-] }
+pico-args = "0.5.0"
 
 [profile.release]
 opt-level = "z"

@@ -1,6 +1,5 @@
 #![feature(slice_pattern)]
 
-use clap::Parser;
 use config::cli::{Application, Cli};
 use simple_logger::SimpleLogger;
 
@@ -13,16 +12,14 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
+    let cli = Cli::parse().unwrap();
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(cli.log_level)
         .env()
         .init()
         .unwrap();
-    let cli = Cli::parse();
     match cli.command {
-        Application::Client { adapter: _adapter } => {
-            socks5::client::main(cli.config_file).await.unwrap()
-        }
+        Application::Client => socks5::client::main(cli.config_file).await.unwrap(),
         Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
     };
 }
