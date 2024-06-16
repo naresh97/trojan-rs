@@ -1,12 +1,11 @@
 #![feature(ip_bits)]
 #![feature(slice_pattern)]
-#![allow(dead_code)]
 
 use std::env;
 
 mod config;
 mod dns;
-mod forwarding_client;
+mod forwarding;
 mod socks5;
 mod tls;
 mod trojan;

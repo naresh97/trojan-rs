@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct ClientConfig {
     pub listening_addr: String,
     pub password: String,

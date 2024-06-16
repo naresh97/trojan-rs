@@ -1,7 +1,7 @@
 use crate::{
     config::ServerConfig,
     dns::DnsResolver,
-    forwarding_client::ForwardingClient,
+    forwarding::SimpleForwardingClient,
     socks5::destination::Destination,
     trojan::protocol::{hash_password, TrojanHandshake},
     utils::read_to_buffer,
@@ -56,14 +56,16 @@ async fn handle_handshake(
         Ok(request) => {
             let payload = request.payload.clone();
             let mut forwarding_client =
-                ForwardingClient::new(connector, dns_resolver, request.destination, true).await?;
+                SimpleForwardingClient::new(connector, dns_resolver, request.destination, true)
+                    .await?;
             forwarding_client.write_buffer(&payload).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
         Err(_e) => {
             let fallback_destination = Destination::Address(server_config.fallback_addr.parse()?);
             let mut forwarding_client =
-                ForwardingClient::new(connector, dns_resolver, fallback_destination, false).await?;
+                SimpleForwardingClient::new(connector, dns_resolver, fallback_destination, false)
+                    .await?;
             forwarding_client.write_buffer(&buffer).await?;
             *socket_state = SocketState::Open(forwarding_client);
         }
@@ -74,7 +76,7 @@ async fn handle_handshake(
 
 async fn handle_forwarding(
     stream: &mut TlsStream<TcpStream>,
-    forwarding_client: &mut ForwardingClient,
+    forwarding_client: &mut SimpleForwardingClient,
 ) -> Result<()> {
     forwarding_client.forward(stream).await?;
     Ok(())
@@ -82,5 +84,5 @@ async fn handle_forwarding(
 
 enum SocketState {
     WaitingForHandshake,
-    Open(ForwardingClient),
+    Open(SimpleForwardingClient),
 }
