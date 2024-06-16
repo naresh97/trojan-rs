@@ -1,0 +1,10 @@
+# Listening address for the SOCKS proxy that will run
+# locally on the client machine
+listening_addr = "0.0.0.0:1080"
+
+# Password for the Trojan Handshake set in the server
+password = "12345"
+
+# Domain and port of the Trojan Server
+server_domain = "example.com"
+server_port = 443

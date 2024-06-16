@@ -1,0 +1,4 @@
+*
+!.gitignore
+!server.toml
+!client.toml

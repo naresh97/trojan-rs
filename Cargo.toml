@@ -1,0 +1,28 @@
+[package]
+name = "trojan-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+tokio = { version = "1.38", features = [
+    "macros",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+] }
+native-tls = "0.2.12"
+tokio-native-tls = "0.3.1"
+hex = "0.4.3"
+log = "0.4.21"
+serde = { version = "1.0.203", features = ["derive"] }
+toml = "0.8.14"
+sha2 = "0.10.8"
+simple_logger = "5.0.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true
+codegen-units = 1
