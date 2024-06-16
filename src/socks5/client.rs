@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 use log::{debug, error};
 use tokio::{
@@ -7,8 +9,12 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 
 use crate::{
-    config::ClientConfig, dns::DnsResolver, socks5::identify::parse_identify_block,
-    tls::io::get_tls_connector, trojan::client::TrojanClient, utils::read_to_buffer,
+    config::{ClientConfig, LoadFromToml},
+    dns::DnsResolver,
+    socks5::identify::parse_identify_block,
+    tls::io::get_tls_connector,
+    trojan::client::TrojanClient,
+    utils::read_to_buffer,
 };
 
 use super::{
@@ -18,7 +24,7 @@ use super::{
 
 pub async fn client_main() -> Result<()> {
     debug!("Starting SOCKS5 Trojan Client");
-    let config = ClientConfig::default();
+    let config = ClientConfig::load(Path::new("samples/client.toml"))?;
     let listener = TcpListener::bind(&config.listening_addr).await?;
     let dns_resolver = DnsResolver::new().await;
     let connector = get_tls_connector();
