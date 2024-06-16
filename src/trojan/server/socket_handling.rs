@@ -58,7 +58,7 @@ async fn handle_handshake(
             debug!("Handshake succeeded");
             let payload = request.payload.clone();
             let mut forwarding_client =
-                SimpleForwardingClient::new(connector, dns_resolver, request.destination, true)
+                SimpleForwardingClient::new(connector, dns_resolver, request.destination, false)
                     .await?;
             forwarding_client.write_buffer(&payload).await?;
             *socket_state = SocketState::Open(forwarding_client);
