@@ -6,27 +6,6 @@ use tokio_rustls::{TlsAcceptor, TlsConnector};
 
 use super::certificates::Certificates;
 
-#[derive(Clone)]
-pub struct TlsAdapters {
-    pub acceptor: TlsAcceptor,
-    pub connector: TlsConnector,
-}
-
-impl TlsAdapters {
-    pub fn new(certificates: Certificates<'static>) -> Result<TlsAdapters> {
-        let self_signed = if cfg!(debug_assertions) {
-            certificates.cert.first().cloned()
-        } else {
-            None
-        };
-
-        Ok(TlsAdapters {
-            acceptor: get_tls_acceptor(certificates)?,
-            connector: get_tls_connector(self_signed)?,
-        })
-    }
-}
-
 pub fn get_tls_acceptor(certificates: Certificates<'static>) -> Result<TlsAcceptor> {
     let config = rustls::ServerConfig::builder()
         .with_no_client_auth()

@@ -6,23 +6,17 @@ use tokio::{
     io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
-use tokio_rustls::TlsConnector;
 
 use crate::{dns::DnsResolver, socks5::destination::Destination};
 
 pub struct SimpleForwardingClient {
-    stream: Box<dyn AsyncStream>,
+    stream: TcpStream,
 }
-
-trait AsyncStream: AsyncRead + AsyncWrite + Unpin + Send {}
-impl<T: AsyncRead + AsyncWrite + Unpin + Send> AsyncStream for T {}
 
 impl SimpleForwardingClient {
     pub async fn new(
-        connector: &TlsConnector,
         dns_resolver: &DnsResolver,
         destination: Destination,
-        use_tls: bool,
     ) -> Result<SimpleForwardingClient> {
         let (address, domain) = match destination {
             Destination::Address(ip) => (ip, ip.ip().to_string()),
@@ -36,11 +30,6 @@ impl SimpleForwardingClient {
             address, domain
         );
         let stream = TcpStream::connect(address).await?;
-        let stream: Box<dyn AsyncStream> = if use_tls {
-            Box::new(connector.connect(domain.try_into()?, stream).await?)
-        } else {
-            Box::new(stream)
-        };
         Ok(SimpleForwardingClient { stream })
     }
     pub async fn forward(
