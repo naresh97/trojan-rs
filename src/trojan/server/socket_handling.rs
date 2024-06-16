@@ -1,12 +1,10 @@
 use crate::{
     config::ServerConfig, dns::DnsResolver, forwarding_client::ForwardingClient,
-    socks5::destination::Destination, utils::read_to_buffer,
+    socks5::destination::Destination, trojan::protocol::TrojanRequest, utils::read_to_buffer,
 };
 use anyhow::{anyhow, Result};
 use tokio::net::TcpStream;
 use tokio_rustls::{server::TlsStream, TlsConnector};
-
-use super::trojan::TrojanRequest;
 
 pub async fn handle_socket(
     dns_resolver: &DnsResolver,

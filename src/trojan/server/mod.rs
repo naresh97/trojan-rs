@@ -1,6 +1,9 @@
+mod socket_handling;
+
 use std::{path::PathBuf, sync::Arc};
 
 use log::debug;
+use socket_handling::handle_socket;
 use tokio::net::TcpListener;
 
 use crate::{
@@ -11,8 +14,6 @@ use crate::{
         io::{get_tls_acceptor, get_tls_connector},
     },
 };
-
-use super::socket_handling::handle_socket;
 
 pub async fn server_main() -> anyhow::Result<()> {
     let server_config: Arc<ServerConfig> = Arc::new(ServerConfig::default());

@@ -8,7 +8,7 @@ mod dns;
 mod forwarding_client;
 mod socks5;
 mod tls;
-mod trojan_server;
+mod trojan;
 mod utils;
 
 #[tokio::main]
@@ -19,6 +19,6 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(|x| x.as_str()) {
         Some("client") => socks5::client::client_main().await.unwrap(),
-        Some(_) | None => trojan_server::server_main().await.unwrap(),
+        Some(_) | None => trojan::server_main().await.unwrap(),
     };
 }
