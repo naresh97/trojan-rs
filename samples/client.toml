@@ -6,4 +6,4 @@ listening_addr = "0.0.0.0:1080"
 password = "12345"
 
 # Domain and port of the Trojan Server
-server_address = "example.com:443"
+server_addr = "example.com:443"

@@ -1,0 +1,85 @@
+{
+  "version": 0,
+  "root_name": "trojan-rs",
+  "workspace_crates": {
+    "trojan-rs": {
+      "full_path": "/home/naresh/Dev/rust/trojan-rs/Cargo.toml",
+      "dependencies": {
+        "sha2": {
+          "original_features": [
+            "std"
+          ],
+          "successfully_removed_features": [
+            "std"
+          ],
+          "unsuccessfully_removed_features": []
+        },
+        "simple_logger": {
+          "original_features": [
+            "timestamps",
+            "colors"
+          ],
+          "successfully_removed_features": [
+            "colors",
+            "timestamps"
+          ],
+          "unsuccessfully_removed_features": []
+        },
+        "tokio": {
+          "original_features": [
+            "rt",
+            "macros",
+            "rt-multi-thread",
+            "num_cpus",
+            "socket2",
+            "io-util",
+            "tokio-macros",
+            "net",
+            "libc",
+            "bytes"
+          ],
+          "successfully_removed_features": [
+            "socket2",
+            "num_cpus",
+            "rt",
+            "tokio-macros",
+            "libc",
+            "bytes"
+          ],
+          "unsuccessfully_removed_features": [
+            "net",
+            "rt-multi-thread",
+            "io-util",
+            "macros"
+          ]
+        },
+        "toml": {
+          "original_features": [
+            "display",
+            "parse"
+          ],
+          "successfully_removed_features": [
+            "display"
+          ],
+          "unsuccessfully_removed_features": [
+            "parse"
+          ]
+        },
+        "serde": {
+          "original_features": [
+            "derive",
+            "serde_derive",
+            "std"
+          ],
+          "successfully_removed_features": [
+            "serde_derive",
+            "std"
+          ],
+          "unsuccessfully_removed_features": [
+            "derive"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -9,7 +9,7 @@ pub struct Cli {
     pub log_level: LevelFilter,
     // Client Options
     #[allow(unused)]
-    pub client_adapter: ClientAdapters,
+    pub client_adapter_type: ClientAdapterType,
 }
 
 pub enum Application {
@@ -31,18 +31,18 @@ impl FromStr for Application {
     }
 }
 
-pub enum ClientAdapters {
+pub enum ClientAdapterType {
     Socks5,
 }
 
-impl FromStr for ClientAdapters {
+impl FromStr for ClientAdapterType {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ["SOCKS5"]
             .iter()
             .position(|&name| name.eq_ignore_ascii_case(s))
             .map(|p| match p {
-                0 => ClientAdapters::Socks5,
+                0 => ClientAdapterType::Socks5,
                 _ => unreachable!(),
             })
             .ok_or(anyhow!("Couldn't parse"))
@@ -58,9 +58,9 @@ impl Cli {
                 .opt_value_from_str("--log")?
                 .unwrap_or(LevelFilter::Info),
             command: pargs.free_from_str()?,
-            client_adapter: pargs
+            client_adapter_type: pargs
                 .opt_value_from_str("--adapter")?
-                .unwrap_or(ClientAdapters::Socks5),
+                .unwrap_or(ClientAdapterType::Socks5),
         };
         Ok(args)
     }
