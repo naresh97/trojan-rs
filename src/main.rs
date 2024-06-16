@@ -1,7 +1,7 @@
 #![feature(slice_pattern)]
 
-use adapters::socks5;
-use config::cli::{Application, Cli};
+use adapters::{socks5, ClientAdapter};
+use config::cli::{Application, Cli, ClientAdapterType};
 use simple_logger::SimpleLogger;
 
 mod adapters;
@@ -19,8 +19,13 @@ async fn main() {
         .env()
         .init()
         .unwrap();
+
     match cli.command {
-        Application::Client => socks5::client::main(cli.config_file).await.unwrap(),
+        Application::Client => match cli.client_adapter_type {
+            ClientAdapterType::Socks5 => {
+                socks5::Socks5Adapter::main(cli.config_file).await.unwrap()
+            }
+        },
         Application::Server => trojan::server::main(cli.config_file).await.unwrap(),
     };
 }

@@ -9,32 +9,36 @@ use tokio::{
 use tokio_native_tls::TlsConnector;
 
 use crate::{
-    adapters::socks5::protocol,
+    adapters::{socks5::protocol, ClientAdapter},
     config::{ClientConfig, LoadFromToml},
     tls::io::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
 
-pub async fn main(config_file: Option<String>) -> Result<()> {
-    info!("Starting SOCKS5 Trojan Client");
-    let config_file = config_file.unwrap_or("client.toml".to_string());
-    let config = ClientConfig::load(Path::new(&config_file))?;
-    let listener = TcpListener::bind(&config.listening_addr).await?;
+pub struct Socks5Adapter {}
 
-    let connector = get_tls_connector()?;
-    info!("Loaded configs and ready to proxy requests");
+impl ClientAdapter for Socks5Adapter {
+    async fn main(config_file: Option<String>) -> anyhow::Result<()> {
+        info!("Starting SOCKS5 Trojan Client");
+        let config_file = config_file.unwrap_or("client.toml".to_string());
+        let config = ClientConfig::load(Path::new(&config_file))?;
+        let listener = TcpListener::bind(&config.listening_addr).await?;
 
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let connector = connector.clone();
-        let config = config.clone();
-        tokio::spawn(async move {
-            if let Err(err) = handle_socket(stream, &connector, &config).await {
-                debug!("{}", err);
-            }
-            debug!("Ending socket.");
-        });
+        let connector = get_tls_connector()?;
+        info!("Loaded configs and ready to proxy requests");
+
+        loop {
+            let (stream, _) = listener.accept().await?;
+            let connector = connector.clone();
+            let config = config.clone();
+            tokio::spawn(async move {
+                if let Err(err) = handle_socket(stream, &connector, &config).await {
+                    debug!("{}", err);
+                }
+                debug!("Ending socket.");
+            });
+        }
     }
 }
 
