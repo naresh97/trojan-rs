@@ -1,5 +1,6 @@
 use aws_lc_rs::digest;
 
+#[derive(Clone)]
 pub struct ServerConfig {
     pub listen_addr: String,
     pub password: String,
