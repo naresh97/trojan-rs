@@ -1,4 +1,3 @@
-#![feature(ip_bits)]
 #![feature(slice_pattern)]
 
 use std::env;
