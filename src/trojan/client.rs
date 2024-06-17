@@ -34,8 +34,13 @@ impl TrojanClient {
             .server_addr
             .to_socket_addrs()
             .context("Couldn't get SocketAddr from address")
-            .and_then(|mut x| x.next().context("Couldn't get SocketAddr from address"))?;
-        let stream = TcpStream::connect(address).await?;
+            .and_then(|mut x| {
+                x.find(|x| x.is_ipv4())
+                    .context("Couldn't get SocketAddr from address")
+            })?;
+        let stream = TcpStream::connect(address)
+            .await
+            .with_context(|| format!("Couldn't connect to address: {}", address))?;
         let local_addr = stream.local_addr()?;
         let stream = connector.connect(domain, stream).await?;
         Ok(TrojanClient {
