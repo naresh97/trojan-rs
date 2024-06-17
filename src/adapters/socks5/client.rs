@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Result;
 use log::{debug, info};
 use tokio::{
@@ -22,7 +20,7 @@ impl ClientAdapter for Socks5Adapter {
     async fn main(config_file: Option<String>) -> anyhow::Result<()> {
         info!("Starting SOCKS5 Trojan Client");
         let config_file = config_file.unwrap_or("client.toml".to_string());
-        let config = ClientConfig::load(Path::new(&config_file))?;
+        let config = ClientConfig::load(&config_file)?;
         let listener = TcpListener::bind(&config.listening_addr).await?;
 
         let connector = get_tls_connector()?;

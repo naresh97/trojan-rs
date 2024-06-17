@@ -1,6 +1,6 @@
 #![feature(slice_pattern)]
 
-use adapters::{socks5, ClientAdapter};
+use adapters::{socks5, tun, ClientAdapter};
 use config::cli::{Application, Cli, ClientAdapterType};
 use simple_logger::SimpleLogger;
 
@@ -26,6 +26,9 @@ async fn main() {
                 return socks5::Socks5Adapter::main(cli.config_file).await.unwrap();
                 #[cfg(not(feature = "socks5"))]
                 panic!("Not compiled");
+            }
+            ClientAdapterType::Tun => {
+                return tun::TunAdapter::main(cli.config_file).await.unwrap();
             }
         },
         Application::Server => {

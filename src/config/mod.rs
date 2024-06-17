@@ -8,7 +8,7 @@ use serde::de::DeserializeOwned;
 pub use server::ServerConfig;
 
 pub trait LoadFromToml {
-    fn load(path: &std::path::Path) -> anyhow::Result<Self>
+    fn load(path: &str) -> anyhow::Result<Self>
     where
         Self: Sized + DeserializeOwned,
     {
