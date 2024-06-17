@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::{debug, info};
 use tokio::{
     io::AsyncWriteExt,
@@ -21,7 +21,12 @@ impl ClientAdapter for Socks5Adapter {
         info!("Starting SOCKS5 Trojan Client");
         let config_file = config_file.unwrap_or("client.toml".to_string());
         let config = ClientConfig::load(&config_file)?;
-        let listener = TcpListener::bind(&config.listening_addr).await?;
+        let socks5_config = config
+            .socks5
+            .as_ref()
+            .ok_or(anyhow!("Socks5 must be configured!"))?;
+
+        let listener = TcpListener::bind(&socks5_config.listening_addr).await?;
 
         let connector = get_tls_connector()?;
         info!("Loaded configs and ready to proxy requests");
