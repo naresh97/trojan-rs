@@ -28,7 +28,10 @@ async fn main() {
                 panic!("Not compiled");
             }
             ClientAdapterType::Tun => {
+                #[cfg(feature = "tun")]
                 return tun::TunAdapter::main(cli.config_file).await.unwrap();
+                #[cfg(not(feature = "tun"))]
+                panic!("Not compiled");
             }
         },
         Application::Server => {
