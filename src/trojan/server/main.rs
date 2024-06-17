@@ -1,18 +1,15 @@
-use std::path::Path;
-
 use log::{debug, info};
 use tokio::net::TcpListener;
 
 use crate::{
-    config::{LoadFromToml, ServerConfig},
-    networking::tls::get_tls_acceptor,
+    config::ServerConfig, networking::tls::get_tls_acceptor,
     trojan::server::socket_handling::handle_socket,
 };
 
 pub async fn main(config_file: Option<String>) -> anyhow::Result<()> {
     info!("Starting Trojan Server");
     let config_file = config_file.unwrap_or("server.toml".to_string());
-    let server_config = ServerConfig::load(Path::new(&config_file))?;
+    let server_config = ServerConfig::load(&config_file)?;
     info!("Loaded configs, ready to listen.");
 
     let tls_acceptor = get_tls_acceptor(&server_config)?;

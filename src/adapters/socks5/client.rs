@@ -1,6 +1,4 @@
-use std::path::Path;
-
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::{debug, info};
 use tokio::{
     io::AsyncWriteExt,
@@ -10,7 +8,7 @@ use tokio_native_tls::TlsConnector;
 
 use crate::{
     adapters::{socks5::protocol, ClientAdapter},
-    config::{ClientConfig, LoadFromToml},
+    config::ClientConfig,
     networking::tls::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
@@ -22,8 +20,13 @@ impl ClientAdapter for Socks5Adapter {
     async fn main(config_file: Option<String>) -> anyhow::Result<()> {
         info!("Starting SOCKS5 Trojan Client");
         let config_file = config_file.unwrap_or("client.toml".to_string());
-        let config = ClientConfig::load(Path::new(&config_file))?;
-        let listener = TcpListener::bind(&config.listening_addr).await?;
+        let config = ClientConfig::load(&config_file)?;
+        let socks5_config = config
+            .socks5
+            .as_ref()
+            .ok_or(anyhow!("Socks5 must be configured!"))?;
+
+        let listener = TcpListener::bind(&socks5_config.listening_addr).await?;
 
         let connector = get_tls_connector()?;
         info!("Loaded configs and ready to proxy requests");
@@ -57,9 +60,7 @@ async fn handle_socket(
 
     loop {
         match &mut client_state {
-            ClientState::Open(forwarding) => {
-                handle_forwarding(forwarding, &mut stream, client_config).await?
-            }
+            ClientState::Open(forwarding) => handle_forwarding(forwarding, &mut stream).await?,
             _ => {
                 handle_socket_setup(&mut client_state, &mut stream, connector, client_config)
                     .await?
@@ -71,11 +72,10 @@ async fn handle_socket(
 async fn handle_forwarding(
     forwarding: &mut TrojanClient,
     client_stream: &mut TcpStream,
-    client_config: &ClientConfig,
 ) -> Result<()> {
     let payload = read_to_buffer(client_stream).await?;
     debug!("Initial payload: {}", String::from_utf8_lossy(&payload));
-    forwarding.send_handshake(&payload, client_config).await?;
+    forwarding.send_handshake(&payload).await?;
     forwarding.forward(client_stream).await?;
     Ok(())
 }

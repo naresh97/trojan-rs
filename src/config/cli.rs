@@ -33,16 +33,18 @@ impl FromStr for Application {
 
 pub enum ClientAdapterType {
     Socks5,
+    Tun,
 }
 
 impl FromStr for ClientAdapterType {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ["SOCKS5"]
+        ["SOCKS5", "TUN"]
             .iter()
             .position(|&name| name.eq_ignore_ascii_case(s))
             .map(|p| match p {
                 0 => ClientAdapterType::Socks5,
+                1 => ClientAdapterType::Tun,
                 _ => unreachable!(),
             })
             .ok_or(anyhow!("Couldn't parse"))

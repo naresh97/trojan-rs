@@ -1,9 +1,14 @@
-# Listening address for the SOCKS proxy that will run
-# locally on the client machine
-listening_addr = "0.0.0.0:1080"
-
 # Password for the Trojan Handshake set in the server
 password = "12345"
 
 # Domain and port of the Trojan Server
 server_addr = "example.com:443"
+
+[socks5]
+# Listening address for the SOCKS proxy that will run
+# locally on the client machine
+listening_addr = "0.0.0.0:1080"
+
+[tun]
+# IP address of the TUN device that will be used to forward requests
+tun_device_ip = "10.0.0.1"

@@ -1,4 +1,5 @@
 pub mod socks5;
+pub mod tun;
 
 use std::future::Future;
 

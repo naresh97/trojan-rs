@@ -19,6 +19,8 @@ toml = { version = "0.8.14", default-features = false, features = ["parse"] }
 sha2 = "0.10.8"
 simple_logger = "5.0.0"
 pico-args = "0.5.0"
+tun2 = { version = "2", features = ["async"] }
+ipstack = "0.0.10"
 
 [dev-dependencies]
 toml = "0.8.14"
@@ -26,8 +28,9 @@ toml = "0.8.14"
 [features]
 default = ["all-clients", "server"]
 vendored = ["tokio-native-tls/vendored"]
-all-clients = ["socks5"]
+all-clients = ["socks5", "tun"]
 socks5 = []
+tun = []
 server = []
 
 [profile.release]

@@ -35,7 +35,7 @@ async fn handle_handshake(
     let buffer = read_to_buffer(stream).await?;
 
     let request = TrojanHandshake::parse(&buffer).await.and_then(|req| {
-        match hash_password(&server_config.password) == req.password {
+        match hash_password(&server_config.password) == req.hashed_password {
             true => Ok(req),
             false => Err(anyhow!("Password was incorrect")),
         }
