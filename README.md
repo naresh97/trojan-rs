@@ -4,7 +4,7 @@
 
 To circumvent certain firewalls, I previously used [trojan-go](https://github.com/p4gefau1t/trojan-go) which worked pretty well. Unfortunately, the binary size of around 8MB was slightly too large to use on my portable router runnin OpenWRT. So I decided to write an implementation of the Trojan Client/Server in Rust.
 
-The current target is <1MB, which has been achieved.
+The goal is to keep the binary under 1MB.
 
 Based on the Trojan protocol described [here](https://github.com/trojan-gfw/trojan).
 
@@ -43,7 +43,3 @@ On the server side:
 INTERNET <-> TROJAN SERVER  <-> SERVER
                             <-> FALLBACK
 ```
-
-## Roadmap
-
-- [ ] add support for the creation of TUN devices
