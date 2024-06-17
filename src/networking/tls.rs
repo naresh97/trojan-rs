@@ -2,6 +2,7 @@ use crate::config::ServerConfig;
 
 use anyhow::{Context, Result};
 use native_tls::{Certificate, Identity};
+use tokio_native_tls::native_tls;
 
 pub fn get_tls_acceptor(server_config: &ServerConfig) -> Result<tokio_native_tls::TlsAcceptor> {
     let pem = std::fs::read_to_string(&server_config.certificate_path)

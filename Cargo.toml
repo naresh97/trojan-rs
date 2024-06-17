@@ -11,7 +11,6 @@ tokio = { version = "1.38", default-features = false, features = [
     "net",
     "io-util",
 ] }
-native-tls = "0.2.12"
 tokio-native-tls = "0.3.1"
 hex = "0.4.3"
 log = "0.4.21"
@@ -26,6 +25,7 @@ toml = "0.8.14"
 
 [features]
 default = ["all-clients", "server"]
+vendored = ["tokio-native-tls/vendored"]
 all-clients = ["socks5"]
 socks5 = []
 server = []
