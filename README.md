@@ -1,5 +1,7 @@
 # trojan-rs
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/naresh97/trojan-rs/rust.yml)
+
 To circumvent certain firewalls, I previously used [trojan-go](https://github.com/p4gefau1t/trojan-go) which worked pretty well. Unfortunately, the binary size of around 8MB was slightly too large to use on my portable router runnin OpenWRT. So I decided to write an implementation of the Trojan Client/Server in Rust.
 
 The current target is <1MB, which has been achieved.
