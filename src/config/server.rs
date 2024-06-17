@@ -1,6 +1,5 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
-
-use super::LoadFromToml;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
@@ -11,7 +10,14 @@ pub struct ServerConfig {
     pub private_key_path: String,
 }
 
-impl LoadFromToml for ServerConfig {}
+impl ServerConfig {
+    pub fn load(path: &str) -> anyhow::Result<ServerConfig> {
+        let config =
+            std::fs::read_to_string(path).with_context(|| format!("Unable to load {:?}", path))?;
+        let config = toml::from_str(&config)?;
+        Ok(config)
+    }
+}
 
 impl Default for ServerConfig {
     fn default() -> Self {

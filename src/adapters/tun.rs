@@ -4,9 +4,7 @@ use log::{debug, info};
 use tokio_native_tls::TlsConnector;
 
 use crate::{
-    config::{ClientConfig, LoadFromToml},
-    networking::tls::get_tls_connector,
-    trojan::client::TrojanClient,
+    config::ClientConfig, networking::tls::get_tls_connector, trojan::client::TrojanClient,
     utils::read_to_buffer,
 };
 
@@ -55,9 +53,7 @@ async fn handle_socket(
         let destination = Destination::Address(stream.peer_addr());
         let mut trojan_client = TrojanClient::new(destination, client_config, connector).await?;
         let payload = read_to_buffer(stream).await?;
-        trojan_client
-            .send_handshake(&payload, client_config)
-            .await?;
+        trojan_client.send_handshake(&payload).await?;
         trojan_client.forward(stream).await?;
     }
     Ok(())

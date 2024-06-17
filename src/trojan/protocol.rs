@@ -9,7 +9,7 @@ use crate::{
 pub const CRLF: [u8; 2] = [0x0D, 0x0A];
 
 pub struct TrojanHandshake {
-    pub password: String,
+    pub hashed_password: String,
     #[allow(unused)]
     pub command: socks5::protocol::request::Command,
     pub destination: socks5::protocol::Destination,
@@ -21,7 +21,7 @@ impl TrojanHandshake {
         let password = buffer
             .get(0..56)
             .ok_or(anyhow!("Buffer too short, couldn't get password."))?;
-        let password = std::str::from_utf8(password)
+        let hashed_password = std::str::from_utf8(password)
             .with_context(|| {
                 format!(
                     "Reading password from handshake: {}",
@@ -39,14 +39,14 @@ impl TrojanHandshake {
 
         let payload = check_crlf_and_advance(buffer)?.to_vec();
         Ok(TrojanHandshake {
-            password,
+            hashed_password,
             command,
             payload,
             destination,
         })
     }
     pub fn as_bytes(&self) -> Vec<u8> {
-        let password = self.password.as_bytes();
+        let password = self.hashed_password.as_bytes();
         let command = [self.command.as_byte()];
         let destination = self.destination.as_bytes();
         let data = [

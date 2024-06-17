@@ -8,7 +8,7 @@ use tokio_native_tls::TlsConnector;
 
 use crate::{
     adapters::{socks5::protocol, ClientAdapter},
-    config::{ClientConfig, LoadFromToml},
+    config::ClientConfig,
     networking::tls::get_tls_connector,
     trojan::client::TrojanClient,
     utils::read_to_buffer,
@@ -60,9 +60,7 @@ async fn handle_socket(
 
     loop {
         match &mut client_state {
-            ClientState::Open(forwarding) => {
-                handle_forwarding(forwarding, &mut stream, client_config).await?
-            }
+            ClientState::Open(forwarding) => handle_forwarding(forwarding, &mut stream).await?,
             _ => {
                 handle_socket_setup(&mut client_state, &mut stream, connector, client_config)
                     .await?
@@ -74,11 +72,10 @@ async fn handle_socket(
 async fn handle_forwarding(
     forwarding: &mut TrojanClient,
     client_stream: &mut TcpStream,
-    client_config: &ClientConfig,
 ) -> Result<()> {
     let payload = read_to_buffer(client_stream).await?;
     debug!("Initial payload: {}", String::from_utf8_lossy(&payload));
-    forwarding.send_handshake(&payload, client_config).await?;
+    forwarding.send_handshake(&payload).await?;
     forwarding.forward(client_stream).await?;
     Ok(())
 }

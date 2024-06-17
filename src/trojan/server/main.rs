@@ -2,8 +2,7 @@ use log::{debug, info};
 use tokio::net::TcpListener;
 
 use crate::{
-    config::{LoadFromToml, ServerConfig},
-    networking::tls::get_tls_acceptor,
+    config::ServerConfig, networking::tls::get_tls_acceptor,
     trojan::server::socket_handling::handle_socket,
 };
 

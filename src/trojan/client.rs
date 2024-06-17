@@ -11,11 +11,12 @@ use tokio::{
 };
 use tokio_native_tls::{TlsConnector, TlsStream};
 
-use super::protocol::{hash_password, TrojanHandshake};
+use super::{hash_password, protocol::TrojanHandshake};
 
 pub struct TrojanClient {
     stream: TlsStream<TcpStream>,
     destination: socks5::protocol::Destination,
+    hashed_password: String,
     pub local_addr: SocketAddr,
 }
 
@@ -43,20 +44,23 @@ impl TrojanClient {
             .with_context(|| format!("Couldn't connect to address: {}", address))?;
         let local_addr = stream.local_addr()?;
         let stream = connector.connect(domain, stream).await?;
+
+        let hashed_password = client_config
+            .hashed_password
+            .clone()
+            .unwrap_or(hash_password(&client_config.password));
+
         Ok(TrojanClient {
             stream,
             destination,
             local_addr,
+            hashed_password,
         })
     }
 
-    pub async fn send_handshake(
-        &mut self,
-        payload: &[u8],
-        client_config: &ClientConfig,
-    ) -> Result<()> {
+    pub async fn send_handshake(&mut self, payload: &[u8]) -> Result<()> {
         let handshake = TrojanHandshake {
-            password: hash_password(&client_config.password),
+            hashed_password: self.hashed_password.clone(),
             command: socks5::protocol::request::Command::Connect,
             destination: self.destination.clone(),
             payload: payload.to_vec(),
