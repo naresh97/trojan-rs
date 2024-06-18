@@ -27,7 +27,7 @@ Options:
 Adapter:
   --adapter <ADAPTER_TYPE>  used in client mode
                             defaults to socks5
-                            values: socks5
+                            values: socks5 tun
 ```
 
 ## Architecture
