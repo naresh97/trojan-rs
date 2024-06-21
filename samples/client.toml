@@ -2,9 +2,7 @@
 password = "12345"
 
 # Domain and port of the Trojan Server
-server_addr = "localhost:2222"
-
-websocket_path = "ws://localhost:2222/naresh"
+server_addr = "example.com:443"
 
 [socks5]
 # Listening address for the SOCKS proxy that will run
