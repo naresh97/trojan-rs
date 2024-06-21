@@ -43,22 +43,27 @@ async fn create_websocket(
     stream: TlsStream<TcpStream>,
     websocket_path: &str,
 ) -> Result<Box<WebsocketWrapper>> {
-    let (tx, rx) = oneshot::channel();
-    let callback = |request: &handshake::server::Request, response| {
-        let _ = tx.send(request.clone());
-        Ok(response)
-    };
-    let stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
-    let path = rx.await?.uri().path().to_string();
-    if path != *websocket_path {
-        bail!(
-            "Incorrect websocket path. Expected {}, got {}",
-            websocket_path,
-            path
-        );
+    #[cfg(feature = "websockets")]
+    {
+        let (tx, rx) = oneshot::channel();
+        let callback = |request: &handshake::server::Request, response| {
+            let _ = tx.send(request.clone());
+            Ok(response)
+        };
+        let stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
+        let path = rx.await?.uri().path().to_string();
+        if path != *websocket_path {
+            bail!(
+                "Incorrect websocket path. Expected {}, got {}",
+                websocket_path,
+                path
+            );
+        }
+        debug!("WebSocket path: {}", path);
+        Ok(Box::new(WebsocketWrapper::new(stream)))
     }
-    debug!("WebSocket path: {}", path);
-    Ok(Box::new(WebsocketWrapper::new(stream)))
+    #[cfg(not(feature = "websockets"))]
+    panic!("Not compiled with websockets")
 }
 
 async fn handle_handshake(

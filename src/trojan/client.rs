@@ -78,11 +78,16 @@ async fn create_websocket_stream(
     stream: TlsStream<TcpStream>,
     websocket_path: &str,
 ) -> Result<Box<WebsocketWrapper>, anyhow::Error> {
-    let (stream, _response) = tokio_tungstenite::client_async(websocket_path, stream)
-        .await
-        .context("Could not initialize WebSocketStream")?;
-    let stream = WebsocketWrapper::new(stream);
-    Ok(Box::new(stream))
+    #[cfg(feature = "websockets")]
+    {
+        let (stream, _response) = tokio_tungstenite::client_async(websocket_path, stream)
+            .await
+            .context("Could not initialize WebSocketStream")?;
+        let stream = WebsocketWrapper::new(stream);
+        Ok(Box::new(stream))
+    }
+    #[cfg(not(feature = "websockets"))]
+    panic!("Not compiled with websocket support.");
 }
 
 async fn create_tcp_stream(

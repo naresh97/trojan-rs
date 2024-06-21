@@ -29,8 +29,9 @@ futures = "0.3.30"
 toml = "0.8.14"
 
 [features]
-default = ["all-clients", "server"]
+default = ["all-clients", "server", "websockets"]
 vendored = ["tokio-native-tls/vendored"]
+websockets = []
 all-clients = ["socks5", "tun"]
 socks5 = []
 tun = []
