@@ -4,6 +4,10 @@ password = "12345"
 # Domain and port of the Trojan Server
 server_addr = "example.com:443"
 
+# Uncomment to enable websocket support and specify
+# a websocket path
+# websocket_path = "ws://example.com:443/my_websocket"
+
 [socks5]
 # Listening address for the SOCKS proxy that will run
 # locally on the client machine
