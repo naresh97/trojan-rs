@@ -8,6 +8,7 @@ pub struct ClientConfig {
     pub password: String,
     pub hashed_password: Option<String>,
     pub server_addr: String,
+    pub websocket_path: Option<String>,
     pub socks5: Option<Socks5>,
     pub tun: Option<Tun>,
 }
@@ -44,6 +45,7 @@ impl Default for ClientConfig {
             tun: Some(Tun {
                 tun_device_ip: "10.0.0.1".to_string(),
             }),
+            websocket_path: None,
         }
     }
 }

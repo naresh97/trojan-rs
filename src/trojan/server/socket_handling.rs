@@ -1,20 +1,32 @@
 use crate::{
     adapters::socks5,
     config::ServerConfig,
-    networking::forwarding::SimpleForwardingClient,
-    trojan::protocol::{hash_password, TrojanHandshake},
+    networking::{forwarding::SimpleForwardingClient, AsyncStream},
+    trojan::{
+        protocol::{hash_password, TrojanHandshake},
+        websocket::WebsocketWrapper,
+    },
     utils::read_to_buffer,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use log::debug;
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, sync::oneshot};
 use tokio_native_tls::TlsStream;
+use tokio_tungstenite::tungstenite::handshake;
 
 pub async fn handle_socket(
     server_config: &ServerConfig,
-    mut stream: TlsStream<TcpStream>,
+    stream: TlsStream<TcpStream>,
 ) -> Result<()> {
     let mut socket_state = SocketState::WaitingForHandshake;
+
+    let mut stream: Box<dyn AsyncStream> =
+        if let Some(websocket_path) = &server_config.websocket_path {
+            create_websocket(stream, websocket_path).await?
+        } else {
+            Box::new(stream)
+        };
+
     loop {
         match &mut socket_state {
             SocketState::WaitingForHandshake => {
@@ -27,19 +39,47 @@ pub async fn handle_socket(
     }
 }
 
+async fn create_websocket(
+    stream: TlsStream<TcpStream>,
+    websocket_path: &str,
+) -> Result<Box<WebsocketWrapper>> {
+    #[cfg(feature = "websockets")]
+    {
+        let (tx, rx) = oneshot::channel();
+        let callback = |request: &handshake::server::Request, response| {
+            let _ = tx.send(request.clone());
+            Ok(response)
+        };
+        let stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
+        let path = rx.await?.uri().path().to_string();
+        if path != *websocket_path {
+            bail!(
+                "Incorrect websocket path. Expected {}, got {}",
+                websocket_path,
+                path
+            );
+        }
+        debug!("WebSocket path: {}", path);
+        Ok(Box::new(WebsocketWrapper::new(stream)))
+    }
+    #[cfg(not(feature = "websockets"))]
+    panic!("Not compiled with websockets")
+}
+
 async fn handle_handshake(
     socket_state: &mut SocketState,
-    stream: &mut TlsStream<TcpStream>,
+    stream: &mut Box<dyn AsyncStream>,
     server_config: &ServerConfig,
 ) -> Result<()> {
+    debug!("Begin handling handshake");
     let buffer = read_to_buffer(stream).await?;
-
     let request = TrojanHandshake::parse(&buffer).await.and_then(|req| {
         match hash_password(&server_config.password) == req.hashed_password {
             true => Ok(req),
             false => Err(anyhow!("Password was incorrect")),
         }
     });
+    debug!("Handshake parsed");
 
     match request {
         Ok(request) => {
@@ -65,7 +105,7 @@ async fn handle_handshake(
 }
 
 async fn handle_forwarding(
-    stream: &mut TlsStream<TcpStream>,
+    stream: &mut Box<dyn AsyncStream>,
     forwarding_client: &mut SimpleForwardingClient,
 ) -> Result<()> {
     forwarding_client.forward(stream).await?;

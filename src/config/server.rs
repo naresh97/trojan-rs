@@ -6,6 +6,7 @@ pub struct ServerConfig {
     pub listen_addr: String,
     pub password: String,
     pub fallback_addr: String,
+    pub websocket_path: Option<String>,
     pub certificate_path: String,
     pub private_key_path: String,
 }
@@ -27,6 +28,7 @@ impl Default for ServerConfig {
             listen_addr: "0.0.0.0:443".to_string(),
             certificate_path: "samples/cert.pem".to_string(),
             private_key_path: "samples/private.pem".to_string(),
+            websocket_path: None,
         }
     }
 }

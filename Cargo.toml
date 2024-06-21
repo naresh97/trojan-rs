@@ -21,13 +21,17 @@ simple_logger = "5.0.0"
 pico-args = "0.5.0"
 tun2 = { version = "2", features = ["async"] }
 ipstack = "0.0.10"
+tokio-tungstenite = "0.23.1"
+tokio-util = { version = "0.7.11", features = ["io"] }
+futures = "0.3.30"
 
 [dev-dependencies]
 toml = "0.8.14"
 
 [features]
-default = ["all-clients", "server"]
+default = ["all-clients", "server", "websockets"]
 vendored = ["tokio-native-tls/vendored"]
+websockets = []
 all-clients = ["socks5", "tun"]
 socks5 = []
 tun = []

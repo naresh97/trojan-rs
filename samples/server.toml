@@ -10,6 +10,10 @@ password = "12345"
 # server believable seeming content
 fallback_addr = "127.0.0.1:8080"
 
+# Uncomment to enable websocket support and specify
+# a websocket path
+# websocket_path = "/my_websocket"
+
 # Legitimate certificates must be used for your domain
 # Self signing is not enabled
 certificate_path = "samples/cert.pem"
