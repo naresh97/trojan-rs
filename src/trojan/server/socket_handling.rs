@@ -4,7 +4,7 @@ use crate::{
     networking::{forwarding::SimpleForwardingClient, AsyncStream},
     trojan::{
         protocol::{hash_password, TrojanHandshake},
-        ws::WebsocketWrapper,
+        websocket::WebsocketWrapper,
     },
     utils::read_to_buffer,
 };

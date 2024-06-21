@@ -1,5 +1,5 @@
 pub mod client;
 mod protocol;
-mod ws;
+mod websocket;
 pub use protocol::hash_password;
 pub mod server;

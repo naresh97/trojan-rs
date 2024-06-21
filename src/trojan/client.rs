@@ -1,7 +1,8 @@
 use std::net::{SocketAddr, ToSocketAddrs};
 
 use crate::{
-    adapters::socks5, config::ClientConfig, networking::AsyncStream, trojan::ws::WebsocketWrapper,
+    adapters::socks5, config::ClientConfig, networking::AsyncStream,
+    trojan::websocket::WebsocketWrapper,
 };
 use anyhow::{Context, Result};
 use log::debug;
