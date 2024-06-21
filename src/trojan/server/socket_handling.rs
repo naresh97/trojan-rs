@@ -8,10 +8,11 @@ use crate::{
     },
     utils::read_to_buffer,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use log::debug;
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, sync::oneshot};
 use tokio_native_tls::TlsStream;
+use tokio_tungstenite::tungstenite::handshake;
 
 pub async fn handle_socket(
     server_config: &ServerConfig,
@@ -40,21 +41,23 @@ pub async fn handle_socket(
 
 async fn create_websocket(
     stream: TlsStream<TcpStream>,
-    _websocket_path: &str,
+    websocket_path: &str,
 ) -> Result<Box<WebsocketWrapper>> {
-    // let (tx, rx) = oneshot::channel();
-    // let callback = |request: &handshake::server::Request, response| {
-    //     let _ = tx.send(request.clone());
-    //     Ok(response)
-    // };
-    //let stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
-    let stream = tokio_tungstenite::accept_async(stream).await?;
-    // let path = rx.await?.uri().path().to_string();
-    // if path != *websocket_path {
-    //     debug!("Incorrect websocket path");
-    //     bail!("Incorrect websocket path.");
-    // }
-    // debug!("WebSocket path: {}", path);
+    let (tx, rx) = oneshot::channel();
+    let callback = |request: &handshake::server::Request, response| {
+        let _ = tx.send(request.clone());
+        Ok(response)
+    };
+    let stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
+    let path = rx.await?.uri().path().to_string();
+    if path != *websocket_path {
+        bail!(
+            "Incorrect websocket path. Expected {}, got {}",
+            websocket_path,
+            path
+        );
+    }
+    debug!("WebSocket path: {}", path);
     Ok(Box::new(WebsocketWrapper::new(stream)))
 }
 
