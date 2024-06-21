@@ -76,6 +76,7 @@ async fn handle_forwarding(
     let payload = read_to_buffer(client_stream).await?;
     debug!("Initial payload: {}", String::from_utf8_lossy(&payload));
     forwarding.send_handshake(&payload).await?;
+    debug!("Forwarding from SOCKS5 to TrojanClient");
     forwarding.forward(client_stream).await?;
     Ok(())
 }
