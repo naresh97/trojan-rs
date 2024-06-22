@@ -14,6 +14,11 @@ fallback_addr = "127.0.0.1:8080"
 # a websocket path
 # websocket_path = "/my_websocket"
 
+# Uncomment to disable port 80 redirection
+# By default, traffic arriving at Port 80 will be redirected
+# to the port specified in 'listen_addr' as a normal HTTP server would
+# disable_port_80_redirect = true
+
 # Legitimate certificates must be used for your domain
 # Self signing is not enabled
 certificate_path = "samples/cert.pem"
