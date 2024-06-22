@@ -7,6 +7,7 @@ pub struct ServerConfig {
     pub password: String,
     pub fallback_addr: String,
     pub websocket_path: Option<String>,
+    pub disable_port_80_redirect: Option<bool>,
     pub certificate_path: String,
     pub private_key_path: String,
 }
@@ -29,6 +30,7 @@ impl Default for ServerConfig {
             certificate_path: "samples/cert.pem".to_string(),
             private_key_path: "samples/private.pem".to_string(),
             websocket_path: None,
+            disable_port_80_redirect: None,
         }
     }
 }
