@@ -25,18 +25,29 @@ tokio-tungstenite = "0.23.1"
 tokio-util = { version = "0.7.11", features = ["io"] }
 futures = "0.3.30"
 async-trait = "0.1.80"
+mime_guess = "2.0.4"
 
 [dev-dependencies]
 toml = "0.8.14"
 
 [features]
-default = ["all-clients", "server", "websockets"]
+# Use all features
+default = ["all-clients", "server", "websockets", "all_server_features"]
+
+# Features that apply to both client and server
 vendored = ["tokio-native-tls/vendored"]
 websockets = []
+
+# Client related features
 all-clients = ["socks5", "tun"]
 socks5 = []
 tun = []
+
+# Server related features
+# 'server' will build only the server without additional features
 server = []
+all_server_features = ["webserver"]
+webserver = []
 
 [profile.release]
 opt-level = "z"

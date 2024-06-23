@@ -3,6 +3,7 @@ use crate::{
     config::ServerConfig,
     networking::{
         forwarding::{ForwardingClient, SimpleForwardingClient},
+        http_server::HttpServer,
         AsyncStream,
     },
     trojan::{
@@ -95,12 +96,24 @@ async fn handle_handshake(
         }
         Err(e) => {
             debug!("Handshake failed: {}. Using fallback.", e);
-            let fallback_destination =
-                socks5::protocol::Destination::Address(server_config.fallback_addr.parse()?);
-            let mut forwarding_client =
-                SimpleForwardingClient::new(&fallback_destination.try_into()?).await?;
+            let mut forwarding_client: Box<dyn ForwardingClient> =
+                if server_config.serve_files_from.is_some() {
+                    #[cfg(feature = "webserver")]
+                    {
+                        Box::new(HttpServer::new(server_config).await?)
+                    }
+                    #[cfg(not(feature = "webserver"))]
+                    {
+                        panic!("Webserver feature not compiled!");
+                    }
+                } else {
+                    let fallback_destination = socks5::protocol::Destination::Address(
+                        server_config.fallback_addr.parse()?,
+                    );
+                    Box::new(SimpleForwardingClient::new(&fallback_destination.try_into()?).await?)
+                };
             forwarding_client.write_buffer(&buffer).await?;
-            *socket_state = SocketState::Open(Box::new(forwarding_client));
+            *socket_state = SocketState::Open(forwarding_client);
         }
     }
 
@@ -109,7 +122,7 @@ async fn handle_handshake(
 
 async fn handle_forwarding(
     stream: &mut Box<dyn AsyncStream>,
-    forwarding_client: &mut Box<dyn ForwardingClient + Send + Sync>,
+    forwarding_client: &mut Box<dyn ForwardingClient>,
 ) -> Result<()> {
     forwarding_client.forward(stream).await?;
     Ok(())
@@ -117,5 +130,5 @@ async fn handle_forwarding(
 
 enum SocketState {
     WaitingForHandshake,
-    Open(Box<dyn ForwardingClient + Send + Sync>),
+    Open(Box<dyn ForwardingClient>),
 }

@@ -1,8 +1,9 @@
 use tokio::io::AsyncWriteExt;
 
-use crate::utils::read_to_buffer;
-
-use super::webserver::{parse_get_request, GetRequest};
+use crate::{
+    networking::http_server::{parse_get_request, GetRequest},
+    utils::read_to_buffer,
+};
 
 pub async fn serve_redirect(
     mut tcp_stream: tokio::net::TcpStream,

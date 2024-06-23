@@ -11,17 +11,13 @@ use tokio::{
 use super::AsyncStream;
 
 #[async_trait]
-pub trait ForwardingClient {
-    async fn new(destination: &SocketAddr) -> Result<Self>
-    where
-        Self: Sized;
+pub trait ForwardingClient: Send + Sync {
     async fn forward(&mut self, client_stream: &mut Box<dyn AsyncStream>) -> Result<()>;
     async fn write_buffer(&mut self, buffer: &[u8]) -> Result<()>;
 }
 
-#[async_trait]
-impl ForwardingClient for SimpleForwardingClient {
-    async fn new(destination: &SocketAddr) -> Result<SimpleForwardingClient> {
+impl SimpleForwardingClient {
+    pub async fn new(destination: &SocketAddr) -> Result<SimpleForwardingClient> {
         debug!(
             "Creating new forwarding socket with address: {}",
             destination
@@ -29,6 +25,10 @@ impl ForwardingClient for SimpleForwardingClient {
         let stream = TcpStream::connect(destination).await?;
         Ok(SimpleForwardingClient { stream })
     }
+}
+
+#[async_trait]
+impl ForwardingClient for SimpleForwardingClient {
     async fn forward(&mut self, client_stream: &mut Box<dyn AsyncStream>) -> Result<()> {
         copy_bidirectional(client_stream, &mut self.stream).await?;
         Ok(())

@@ -8,6 +8,7 @@ pub struct ServerConfig {
     pub fallback_addr: String,
     pub websocket_path: Option<String>,
     pub disable_port_80_redirect: Option<bool>,
+    pub serve_files_from: Option<String>,
     pub certificate_path: String,
     pub private_key_path: String,
 }
@@ -31,6 +32,7 @@ impl Default for ServerConfig {
             private_key_path: "samples/private.pem".to_string(),
             websocket_path: None,
             disable_port_80_redirect: None,
+            serve_files_from: None,
         }
     }
 }
