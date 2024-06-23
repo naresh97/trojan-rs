@@ -1,14 +1,19 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use log::debug;
 use tokio::{
-    io::{copy_bidirectional, AsyncRead, AsyncWrite, AsyncWriteExt},
+    io::{copy_bidirectional, AsyncWriteExt},
     net::TcpStream,
 };
 
-pub struct SimpleForwardingClient {
-    stream: TcpStream,
+use super::AsyncStream;
+
+#[async_trait]
+pub trait ForwardingClient: Send + Sync {
+    async fn forward(&mut self, client_stream: &mut Box<dyn AsyncStream>) -> Result<()>;
+    async fn write_buffer(&mut self, buffer: &[u8]) -> Result<()>;
 }
 
 impl SimpleForwardingClient {
@@ -20,16 +25,21 @@ impl SimpleForwardingClient {
         let stream = TcpStream::connect(destination).await?;
         Ok(SimpleForwardingClient { stream })
     }
-    pub async fn forward(
-        &mut self,
-        client_stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
-    ) -> Result<()> {
+}
+
+#[async_trait]
+impl ForwardingClient for SimpleForwardingClient {
+    async fn forward(&mut self, client_stream: &mut Box<dyn AsyncStream>) -> Result<()> {
         copy_bidirectional(client_stream, &mut self.stream).await?;
         Ok(())
     }
 
-    pub async fn write_buffer(&mut self, buffer: &[u8]) -> Result<()> {
+    async fn write_buffer(&mut self, buffer: &[u8]) -> Result<()> {
         self.stream.write_all(buffer).await?;
         Ok(())
     }
+}
+
+pub struct SimpleForwardingClient {
+    stream: TcpStream,
 }

@@ -19,6 +19,9 @@ fallback_addr = "127.0.0.1:8080"
 # to the port specified in 'listen_addr' as a normal HTTP server would
 # disable_port_80_redirect = true
 
+# Uncomment to enable serving files from a local path
+# serve_files_from = "./html"
+
 # Legitimate certificates must be used for your domain
 # Self signing is not enabled
 certificate_path = "samples/cert.pem"
