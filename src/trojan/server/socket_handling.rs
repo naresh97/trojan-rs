@@ -1,7 +1,10 @@
 use crate::{
     adapters::socks5,
     config::ServerConfig,
-    networking::{forwarding::SimpleForwardingClient, AsyncStream},
+    networking::{
+        forwarding::{ForwardingClient, SimpleForwardingClient},
+        AsyncStream,
+    },
     trojan::{
         protocol::{hash_password, TrojanHandshake},
         websocket::WebsocketWrapper,
@@ -88,7 +91,7 @@ async fn handle_handshake(
             let mut forwarding_client =
                 SimpleForwardingClient::new(&request.destination.try_into()?).await?;
             forwarding_client.write_buffer(&payload).await?;
-            *socket_state = SocketState::Open(forwarding_client);
+            *socket_state = SocketState::Open(Box::new(forwarding_client));
         }
         Err(e) => {
             debug!("Handshake failed: {}. Using fallback.", e);
@@ -97,7 +100,7 @@ async fn handle_handshake(
             let mut forwarding_client =
                 SimpleForwardingClient::new(&fallback_destination.try_into()?).await?;
             forwarding_client.write_buffer(&buffer).await?;
-            *socket_state = SocketState::Open(forwarding_client);
+            *socket_state = SocketState::Open(Box::new(forwarding_client));
         }
     }
 
@@ -106,7 +109,7 @@ async fn handle_handshake(
 
 async fn handle_forwarding(
     stream: &mut Box<dyn AsyncStream>,
-    forwarding_client: &mut SimpleForwardingClient,
+    forwarding_client: &mut Box<dyn ForwardingClient + Send + Sync>,
 ) -> Result<()> {
     forwarding_client.forward(stream).await?;
     Ok(())
@@ -114,5 +117,5 @@ async fn handle_forwarding(
 
 enum SocketState {
     WaitingForHandshake,
-    Open(SimpleForwardingClient),
+    Open(Box<dyn ForwardingClient + Send + Sync>),
 }

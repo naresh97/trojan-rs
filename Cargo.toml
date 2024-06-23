@@ -24,6 +24,7 @@ ipstack = "0.0.10"
 tokio-tungstenite = "0.23.1"
 tokio-util = { version = "0.7.11", features = ["io"] }
 futures = "0.3.30"
+async-trait = "0.1.80"
 
 [dev-dependencies]
 toml = "0.8.14"
