@@ -80,10 +80,10 @@ Content-Type: {}
         Ok(response.as_bytes().to_vec())
     } else {
         let response_404 = r#"HTTP/1.1 404 Not Found
-        Content-Type: text/html
-        
-        <h1>404 Not Found</h1>
-        "#;
+Content-Type: text/html
+
+<h1>404 Not Found</h1>
+"#;
         Ok(response_404.as_bytes().to_vec())
     }
 }
